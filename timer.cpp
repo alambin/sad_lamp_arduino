@@ -1,19 +1,16 @@
 #include "timer.h"
 
+#include <Arduino.h>
 #include <DS1307RTC.h>
-#include <stdio.h>
-#include "HardwareSerial.h"
+// #include <stdio.h>
+// #include "HardwareSerial.h"
 
 #include "eeprom_map.h"
 
-//#define COUT_OUTPUT
-#ifdef COUT_OUTPUT
-#define throw(...)
-#include <ArduinoSTL.h>
-#endif
-
-Timer::Timer()
-  : alarm_{0, 0}
+Timer::Timer(uint32_t reading_period_ms = 500)
+  : reading_period_ms_{reading_period_ms}
+  , last_reading_time_{0}
+  , alarm_{0, 0}
   , is_alarm_enabled_{false}
   , callback_{nullptr}
 {
@@ -26,17 +23,12 @@ Timer::setup()
     alarm_.minute     = eeprom_read_byte(&alarm_minutes_address);
     is_alarm_enabled_ = (eeprom_read_byte(&is_alarm_on_address) == 1);
 
-#ifdef COUT_OUTPUT
-    std::cout << F("Read from EEPROM alarm time ") << (int)alarm_.hour << F(":") << (int)alarm_.minute
-              << F(". Alarm is ") << (is_alarm_enabled_ ? F("enabled") : F("disabled")) << F("\n");
-#else
     Serial.print(F("Read from EEPROM alarm time "));
     Serial.print((int)alarm_.hour);
     Serial.print(F(":"));
     Serial.print((int)alarm_.minute);
     Serial.print(F(". Alarm is "));
     Serial.println(is_alarm_enabled_ ? F("enabled") : F("disabled"));
-#endif
 }
 
 // We are not using hardware alarm. Reason: there are only 2 alarms. They can be configured to trigger either on
@@ -49,10 +41,21 @@ Timer::loop()
         return;
     }
 
+    // Do not read from RTC on every iteration of loop(). Reading 2 times per second is quite safe.
+    auto now = millis();
+    if ((now - last_reading_time_) < reading_period_ms_) {
+        return;
+    }
+    last_reading_time_ = now;
+
     tmElements_t datetime;
     if (RTC.read(datetime) &&
         ((datetime.Hour == alarm_.hour) && (datetime.Minute == alarm_.minute) && (datetime.Second == 0))) {
-        callback_();
+        // Trigger alarm only once
+        if (!(last_triggered_alarm_ == datetime)) {
+            last_triggered_alarm_ = datetime;
+            callback_();
+        }
     }
 }
 
@@ -82,12 +85,9 @@ Timer::get_time() const
 void
 Timer::set_time_str(const String& str) const
 {
-#ifdef COUT_OUTPUT
-    std::cout << F("Received command 'Set time' ") << str.c_str() << F("\n");
-#else
     Serial.print(F("Received command 'Set time' "));
-    Serial.print(str);
-#endif
+    Serial.println(str);
+
     auto datetime{str_to_datetime(str)};
     RTC.write(datetime);
 }
@@ -95,12 +95,8 @@ Timer::set_time_str(const String& str) const
 void
 Timer::set_alarm_str(const String& str)
 {
-#ifdef COUT_OUTPUT
-    std::cout << F("Received command 'Set alarm' ") << str.c_str() << F("\n");
-#else
     Serial.print(F("Received command 'Set alarm' "));
     Serial.println(str);
-#endif
 
     alarm_ = str_to_alarm(str);
 
@@ -108,14 +104,10 @@ Timer::set_alarm_str(const String& str)
     eeprom_write_byte(&alarm_hours_address, alarm_.hour);
     eeprom_write_byte(&alarm_minutes_address, alarm_.minute);
 
-#ifdef COUT_OUTPUT
-    std::cout << F("Stored to EEPROM alarm at ") << (int)alarm_.hour << F(":") << (int)alarm_.minute << F("\n");
-#else
     Serial.print(F("Stored to EEPROM alarm at "));
     Serial.print((int)alarm_.hour);
     Serial.print(F(":"));
     Serial.println((int)alarm_.minute);
-#endif
 }
 
 void
@@ -130,12 +122,39 @@ Timer::toggle_alarm()
         eeprom_write_byte(&is_alarm_on_address, 1);
     }
 
-#ifdef COUT_OUTPUT
-    std::cout << F("Alarm is ") << (is_alarm_enabled_ ? F("enabled") : F("disabled")) << F("\n");
-#else
     Serial.print(F("Alarm is "));
     Serial.println(is_alarm_enabled_ ? F("enabled") : F("disabled"));
-#endif
+}
+
+Timer::AlarmDataExtended::AlarmDataExtended()
+  : alarm_data{0, 0}
+  , day{0}
+  , month{0}
+  , year{0}
+{
+}
+
+Timer::AlarmDataExtended::AlarmDataExtended(const tmElements_t& time_elements)
+  : alarm_data{time_elements.Hour, time_elements.Minute}
+  , day{time_elements.Day}
+  , month{time_elements.Month}
+  , year{time_elements.Year}
+{
+}
+
+Timer::AlarmDataExtended&
+Timer::AlarmDataExtended::operator=(const tmElements_t& time_elements)
+{
+    AlarmDataExtended tmp(time_elements);
+    *this = tmp;
+    return *this;
+}
+
+bool
+Timer::AlarmDataExtended::operator==(const tmElements_t& time_elements) const
+{
+    return ((alarm_data.hour == time_elements.Hour) && (alarm_data.minute == time_elements.Minute) &&
+            (day == time_elements.Day) && (month == time_elements.Month) && (year == time_elements.Year));
 }
 
 tmElements_t

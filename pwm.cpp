@@ -11,10 +11,10 @@ constexpr PROGMEM uint8_t mask_map[3][7] = {
     {B00000111, B00000110, B00000101, B00000100, B00000011, B00000010, B00000001}};  // D3, D11
 }  // namespace
 
-Pwm::Pwm(int pin, Pwm::PWMSpeed pwm_speed, bool double_pwm)
-  : pin_(pin)
-  , pwm_speed_(pwm_speed)
-  , double_pwm_(double_pwm)
+Pwm::Pwm(uint8_t pin, Pwm::PWMSpeed pwm_speed, bool double_pwm)
+  : pin_{pin}
+  , pwm_speed_{pwm_speed}
+  , double_pwm_{double_pwm}
 {
 }
 

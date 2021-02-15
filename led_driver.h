@@ -2,6 +2,9 @@
 #define LED_DRIVER_H_
 
 #include "IComponent.h"
+
+#include <stdint.h>
+
 #include "pwm.h"
 #include "timer.h"
 
@@ -9,7 +12,7 @@
 class LedDriver : public IComponent
 {
 public:
-    LedDriver(int pin, Pwm::PWMSpeed pwm_speed, Timer& timer);
+    LedDriver(uint8_t pin, Pwm::PWMSpeed pwm_speed, Timer& timer);
     void setup() override;
     void loop();
 

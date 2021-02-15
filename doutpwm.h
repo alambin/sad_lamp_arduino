@@ -15,7 +15,7 @@
 class DoutPwm : public IComponent
 {
 public:
-    DoutPwm(int pin1, int pin2);
+    DoutPwm(uint8_t pin1, uint8_t pin2);
     void setup() override;
     void loop();
 
@@ -34,13 +34,13 @@ public:
     void set_output(bool is_high);
 
 private:
-    int      pin1_;
-    int      pin2_;
-    uint16_t frequency_;
-    uint8_t  num_of_steps_;
-    uint32_t on_time_us_;
-    uint32_t off_time_us_;
-    bool     current_output_signal_;
+    const uint8_t pin1_;
+    const uint8_t pin2_;
+    uint16_t      frequency_;
+    uint8_t       num_of_steps_;
+    uint32_t      on_time_us_;
+    uint32_t      off_time_us_;
+    bool          current_output_signal_;
 
     bool     is_pwm_started_;
     uint32_t pwm_start_time_;

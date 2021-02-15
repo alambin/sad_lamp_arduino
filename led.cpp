@@ -2,8 +2,8 @@
 
 #include <Arduino.h>
 
-Led::Led(int pin)
-  : pin_(pin)
+Led::Led(uint8_t pin)
+  : pin_{pin}
 {
 }
 

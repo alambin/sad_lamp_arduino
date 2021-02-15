@@ -5,7 +5,7 @@
 
 #include "utils.h"
 
-DoutPwm::DoutPwm(int pin1, int pin2)
+DoutPwm::DoutPwm(uint8_t pin1, uint8_t pin2)
   : pin1_{pin1}
   , pin2_{pin2}
   , frequency_{3}
@@ -126,9 +126,9 @@ DoutPwm::set_duty(uint8_t duty)
         return;
     }
 
-    const uint32_t step_duration_us_ = 1000000 / (frequency_ * num_of_steps_);
-    on_time_us_                      = duty * step_duration_us_;
-    off_time_us_                     = (num_of_steps_ - duty) * step_duration_us_;
+    const uint32_t step_duration_us_{1000000 / (frequency_ * num_of_steps_)};
+    on_time_us_  = duty * step_duration_us_;
+    off_time_us_ = (num_of_steps_ - duty) * step_duration_us_;
 
     DebugPrint(F("DoutPwm::set_duty(): on_time_us_ = "));
     DebugPrint(on_time_us_);

@@ -2,12 +2,6 @@
 
 #include <Arduino.h>
 
-//#define COUT_OUTPUT
-#ifdef COUT_OUTPUT
-#define throw(...)
-#include <ArduinoSTL.h>
-#endif
-
 #include "eeprom_map.h"
 
 namespace
@@ -54,7 +48,7 @@ constexpr PROGMEM uint16_t brightness_levels[num_of_levels] = {
 //     0xEB, 0xEE, 0xF0, 0xF3, 0xF5, 0xF8, 0xFA, 0xFD, 0xFF};
 }  // namespace
 
-LedDriver::LedDriver(int pin, Pwm::PWMSpeed pwm_speed, Timer& timer)
+LedDriver::LedDriver(uint8_t pin, Pwm::PWMSpeed pwm_speed, Timer& timer)
   : pwm_{pin, pwm_speed, false}
   , timer_{timer}
   , is_sunrise_in_progress_{false}
@@ -70,13 +64,9 @@ LedDriver::setup()
     uint8_t duration_min{(uint8_t)eeprom_read_byte(&sunraise_duration_minutes_address)};
     sunrise_duration_sec_ = 60 * duration_min;
 
-#ifdef COUT_OUTPUT
-    std::cout << F("Read from EEPROM Sunrise duration ") << (int)duration_min << F(" minutes\n");
-#else
     Serial.print(F("Read from EEPROM Sunrise duration "));
     Serial.print((int)duration_min);
     Serial.println(F(" minutes"));
-#endif
 }
 
 void
@@ -86,7 +76,10 @@ LedDriver::loop()
         return;
     }
 
-    // TODO: use mills() instead of Timer in this class?
+    // TODO:
+    // 1. Use mills() instead of Timer in this class?
+    // 2. Can we execute this function not every loop() but, say, every second?
+    //    Or every min(1_second, sunrise_duration_sec_/num_of_levels)
     time_t delta_time = timer_.get_time() - sunrise_start_time_;
     if (delta_time >= sunrise_duration_sec_) {
         is_sunrise_in_progress_ = false;
@@ -95,31 +88,23 @@ LedDriver::loop()
 
     uint8_t  index{(uint8_t)((delta_time * num_of_levels) / sunrise_duration_sec_)};
     uint16_t brightness_level{pgm_read_word(&brightness_levels[index])};
-    uint8_t  mapped_level = map(brightness_level, 1, 992, 0, 255);
+    uint8_t  mapped_level{map(brightness_level, 1, 992, 0, 255)};
     pwm_.set_duty(mapped_level);
 }
 
 void
 LedDriver::set_sunrise_duration_str(const String& str)
 {
-#ifdef COUT_OUTPUT
-    std::cout << F("Received command 'Set Sunrise duration' ") << str.c_str() << F("\n");
-#else
     Serial.print(F("Received command 'Set Sunrise duration' "));
     Serial.println(str);
-#endif
 
     uint8_t duration_min{(uint8_t)str.substring(0, 2).toInt()};
     eeprom_write_byte(&sunraise_duration_minutes_address, duration_min);
     sunrise_duration_sec_ = 60 * duration_min;
 
-#ifdef COUT_OUTPUT
-    std::cout << F("Stored to EEPROM Sunrise duration ") << (int)duration_min << F(" minutes\n");
-#else
     Serial.print(F("Stored to EEPROM Sunrise duration "));
     Serial.print((int)duration_min);
     Serial.println(F(" minutes"));
-#endif
 }
 
 void

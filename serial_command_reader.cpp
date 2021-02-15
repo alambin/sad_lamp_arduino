@@ -28,7 +28,7 @@ SerialCommandReader::get_command()
 
     String command_str;
     String arguments;
-    auto   space_index{input_string.indexOf(' ')};
+    auto   space_index = input_string.indexOf(' ');
     if (space_index == -1) {
         command_str = input_string;
     }

@@ -6,6 +6,7 @@
 #include <ArduinoSTL.h>
 #endif
 
+#include "Potentiometer.h"
 #include "doutpwm.h"
 #include "fan.h"
 #include "led.h"
@@ -14,17 +15,25 @@
 #include "timer.h"
 #include "utils.h"
 
-SerialCommandReader serial_command_reader;
-// FanPWM              fan(3, Pwm::PWMSpeed::HZ_31372);
-Led       led(LED_BUILTIN);
-Timer     timer;
-LedDriver led_driver(9, Pwm::PWMSpeed::HZ_490, timer);
-DoutPwm   dout_pwm(2, 4);
+// Pin definitions
+#define LED_DRIVER_PWM_PIN 9
+#define FAN1_PIN           2
+#define FAN2_PIN           4
+#define POTENTIOMETER_PIN  A0
 
 namespace
 {
-const uint16_t num_of_pwm_steps = 10;
-const uint16_t pwm_frequency    = 3;
+const uint16_t num_of_pwm_steps    = 10;
+const uint16_t pwm_frequency       = 3;
+const uint16_t manualModeThreshold = 100;
+
+SerialCommandReader serial_command_reader;
+// FanPWM              fan(3, Pwm::PWMSpeed::HZ_31372);
+Led           led(LED_BUILTIN);
+Timer         timer;
+LedDriver     led_driver(LED_DRIVER_PWM_PIN, Pwm::PWMSpeed::HZ_490, timer);
+DoutPwm       dout_pwm(FAN1_PIN, FAN2_PIN);
+Potentiometer potentiometer(POTENTIOMETER_PIN, 10);
 }  // namespace
 
 void
@@ -36,8 +45,8 @@ print_usage()
                      "\t\"sa HH:MM\" - set alarm on specified time\n"
                      "\t\"ta\" toggle alarm On/Off\n"
                      "\t\"ssd MM\" set Sunrise duration in minutes\n"
-                     "\t\"sff FF\" set fan PWM frequency\n"
-                     "\t\"sfs NN\" set fan PWM steps number (steps per PWM period)\n"));
+                     "\t\"sff FF\" set fan PWM frequency (used only for DOUT PWM)\n"
+                     "\t\"sfs NN\" set fan PWM steps number (steps per PWM period) (used only for DOUT PWM)\n"));
 }
 
 void
@@ -59,6 +68,7 @@ setup()
     timer.setup();
     timer.set_alarm_callback(alarm_callback);
     led_driver.setup();
+    potentiometer.setup();
 
     Serial.println(F("Done"));
 
@@ -88,6 +98,7 @@ void
 sad_lamp_loop()
 {
     timer.loop();
+    potentiometer.loop();
 
     if (serial_command_reader.is_command_ready()) {
         auto command{serial_command_reader.get_command()};
@@ -119,19 +130,37 @@ sad_lamp_loop()
 
     led_driver.loop();
 
+    // TODO:
+    // 1. implement manual mode for lamp. In this mode timer should not trigger alarm.
+    //    Looks like we can skip calling timer.loop() and led_driver.loop() in manual mode - need to check carefully
+    //    We should properly handle entrance to manual mode. Ex. stop sunrise, if it was in progress, etc.
+    // 2. Need to extend led_driver interface to support setting of brightness
+    // 3. Implement inside led_driver mapping from potentiometer value to driver's duty cycle. Somthing like
+    //    uint16_t rotat     = potentiometer_val / 4;
+    //    uint16_t inv_rotat = 255 - rotat;
+    //
+    // if (potentiometer.read() > manualModeThreshold) {
+    // }
+
     // TODO: remove it. This is temporary code to show device is alive
-    auto time{timer.get_time_str()};
-    if (time.length() == 0) {
-        Serial.println(F("error"));
-        delay(5000);
-    }
-    else {
+    static uint32_t last_printed_message_time = 0;
+    auto            now                       = millis();
+    if ((now - last_printed_message_time) >= 1000) {
+        last_printed_message_time = now;
+        auto time{timer.get_time_str()};
+        if (time.length() == 0) {
+            Serial.println(F("error"));
+            delay(5000);
+            return;
+        }
+
+        Serial.print("Potentiometer = ");
+        Serial.println(potentiometer.read());
         Serial.println(time);
     }
-    delay(1000);
 }
 
-// Arduino predefined function-callback on receiving serial data
+// Arduino's predefined function-callback on receiving serial data
 void
 serialEvent()
 {
@@ -184,11 +213,15 @@ loop()
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Test of potenciometer readings and filtering
 /*
+#include "Potentiometer.h"
+Potentiometer potentiometer(A0, 10);
+
 void
 testReadingsOfResistor()
 {
-    uint16_t rotat = analogRead(A0) / 4;
+    uint16_t rotat     = analogRead(A0) / 4;
     uint16_t inv_rotat = 255 - rotat;
     analogWrite(3, inv_rotat);
 
@@ -203,10 +236,13 @@ void
 setup()
 {
     Serial.begin(9600);
+    potentiometer.setup();
 
-    pinMode(3, OUTPUT);
-    TCCR2B &= B11111000;
-    TCCR2B |= B00000011;
+    // Serial.println('NotFiltered, Median3 ');
+
+    // pinMode(3, OUTPUT);
+    // TCCR2B &= B11111000;
+    // TCCR2B |= B00000011;
     // digitalWrite(3, HIGH);
 
     pinMode(A0, INPUT);
@@ -215,7 +251,9 @@ setup()
 void
 loop()
 {
-    testReadingsOfResistor();
+    potentiometer.loop();
+
+    delay(10);
 }
 */
 

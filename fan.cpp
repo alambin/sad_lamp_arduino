@@ -1,7 +1,7 @@
 #include "fan.h"
 
-FanPWM::FanPWM(int pin, Pwm::PWMSpeed pwm_speed)
-  : pwm_(pin, pwm_speed, false)
+FanPWM::FanPWM(uint8_t pin, Pwm::PWMSpeed pwm_speed)
+  : pwm_{pin, pwm_speed, false}
 {
 }
 

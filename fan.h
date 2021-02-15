@@ -57,12 +57,15 @@ Hz    | 25%  | 50%  | 75%   | Notes
 #define FAN_H_
 
 #include "IComponent.h"
+
+#include <stdint.h>
+
 #include "pwm.h"
 
 class FanPWM : public IComponent
 {
 public:
-    FanPWM(int pin, Pwm::PWMSpeed pwm_speed);
+    FanPWM(uint8_t pin, Pwm::PWMSpeed pwm_speed);
     void setup() override;
     void set_speed(char current_speed);
 
