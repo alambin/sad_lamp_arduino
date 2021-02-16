@@ -4,7 +4,7 @@
 #include "IComponent.h"
 
 #include <Time.h>
-#include "WString.h"
+#include <WString.h>
 
 class Timer : public IComponent
 {

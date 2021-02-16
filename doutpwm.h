@@ -4,7 +4,7 @@
 #include "IComponent.h"
 
 #include <stdint.h>
-#include "WString.h"
+#include <WString.h>
 
 // Implements PWM using digital output pin. The same PWM is generated on both - pin1 and pin2
 // PWM is generated for frequency "frequency". Each period of PWM is split in "num_of_steps" steps.

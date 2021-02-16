@@ -28,9 +28,9 @@ Potentiometer::loop()
     if ((now - last_sampling_time_) < sampling_ms_) {
         return;
     }
-
     last_sampling_time_ = now;
-    current_value_      = filter(analogRead(pin_));
+
+    current_value_ = filter(analogRead(pin_));
 }
 
 uint16_t
@@ -162,8 +162,9 @@ Potentiometer::PrintprintDebug(uint16_t new_value)
     // Print avg performance
     // static uint32_t runc_count = 0;
     // ++runc_count;
-    // static uint32_t median_gyver_additive_time     = 0;
-    // static uint32_t median_gyver_opt_additive_time = 0;
+    // static uint32_t median_10gyver_avg_time     = 0;
+    // static uint32_t median_3gyver_avg_time = 0;
+    // static uint32_t median_om9_avg_time = 0;
 
     // static bool reset_made = false;
     // if ((runc_count >= 100) || reset_made) {
@@ -172,13 +173,16 @@ Potentiometer::PrintprintDebug(uint16_t new_value)
     //         reset_made = true;
     //     }
 
-    //     median_gyver_additive_time += median_10gyver_time;
-    //     median_gyver_opt_additive_time += median_gyver_opt_time;
+    //     median_10gyver_avg_time += median_10gyver_time;
+    //     median_3gyver_avg_time += median_3gyver_time;
+    //     median_om9_avg_time += median_om9_time;
     // }
 
     // Serial.print("median_gyver_avg_time:");
-    // Serial.print(median_gyver_additive_time / runc_count);
+    // Serial.print(median_10gyver_avg_time / runc_count);
     // Serial.print(", median_gyver_opt_avg_time:");
-    // Serial.print(median_gyver_opt_additive_time / runc_count);
+    // Serial.print(median_3gyver_avg_time / runc_count);
+    // Serial.print(", median_om9_avg_time:");
+    // Serial.print(median_om9_avg_time / runc_count);
     // Serial.println();
 }

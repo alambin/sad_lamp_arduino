@@ -3,7 +3,7 @@
 
 #include "IComponent.h"
 
-#include "WString.h"
+#include <WString.h>
 
 class SerialCommandReader : public IComponent
 {

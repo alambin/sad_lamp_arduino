@@ -6,17 +6,29 @@
 
 namespace
 {
-constexpr uint8_t num_of_levels{64};
 // TODO: there are many different options on dimming functions:
 //       https://blog.moonsindustries.com/2018/12/02/what-are-dimming-curves-and-how-to-choose/)
 //       Most popular (should try):
 //       1. logarithmyc
 //       2. DALI logarithmic
 //       3. Gamma
-constexpr PROGMEM uint16_t brightness_levels[num_of_levels] = {
+
+constexpr PROGMEM uint16_t brightness_levels[] = {
     1,   2,   4,   6,   9,   12,  16,  20,  25,  30,  36,  42,  49,  56,  64,  72,  81,  90,  100, 110, 121, 132,
     144, 156, 169, 182, 196, 210, 225, 240, 256, 272, 289, 306, 324, 342, 361, 380, 400, 420, 441, 462, 484, 506,
     529, 552, 576, 600, 625, 650, 676, 702, 729, 756, 784, 812, 841, 870, 900, 930, 961, 992, 992, 992};
+constexpr uint8_t num_of_levels{sizeof(brightness_levels) / sizeof(brightness_levels[0])};
+
+// For debugging.
+// constexpr PROGMEM uint16_t brightness_levels[num_of_levels] = {
+//     1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20,
+//     21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,
+//     41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,  60,
+//     61,  62,  63,  64,  65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,
+//     81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,  92,  93,  94,  95,  96,  97,  98,  99,  100,
+//     101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120};
+
+
 // const uint8_t PROGMEM brightness_levels_gamma8_remapped[] = {
 //     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
 //     0,   0,   0,   0,   0,   0,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   2,   2,   2,
@@ -48,9 +60,11 @@ constexpr PROGMEM uint16_t brightness_levels[num_of_levels] = {
 //     0xEB, 0xEE, 0xF0, 0xF3, 0xF5, 0xF8, 0xFA, 0xFD, 0xFF};
 }  // namespace
 
-LedDriver::LedDriver(uint8_t pin, Pwm::PWMSpeed pwm_speed, Timer& timer)
+LedDriver::LedDriver(uint8_t pin, Pwm::PWMSpeed pwm_speed, uint32_t updating_period_ms)
   : pwm_{pin, pwm_speed, false}
-  , timer_{timer}
+  , initial_updating_period_ms_{updating_period_ms}
+  , adjusted_updating_period_ms_(updating_period_ms)
+  , last_updating_time_{0}
   , is_sunrise_in_progress_{false}
   , sunrise_start_time_{0}
   , sunrise_duration_sec_{0}
@@ -62,7 +76,7 @@ LedDriver::setup()
 {
     pwm_.setup();
     uint8_t duration_min{(uint8_t)eeprom_read_byte(&sunraise_duration_minutes_address)};
-    sunrise_duration_sec_ = 60 * duration_min;
+    set_sunrise_duration(duration_min);
 
     Serial.print(F("Read from EEPROM Sunrise duration "));
     Serial.print((int)duration_min);
@@ -76,17 +90,29 @@ LedDriver::loop()
         return;
     }
 
-    // TODO:
-    // 1. Use mills() instead of Timer in this class?
-    // 2. Can we execute this function not every loop() but, say, every second?
-    //    Or every min(1_second, sunrise_duration_sec_/num_of_levels)
-    time_t delta_time = timer_.get_time() - sunrise_start_time_;
-    if (delta_time >= sunrise_duration_sec_) {
+    auto now = millis();
+    if ((now - last_updating_time_) < adjusted_updating_period_ms_) {
+        return;
+    }
+    last_updating_time_ = now;
+
+    uint32_t delta_time_ms{(now - sunrise_start_time_)};
+    if (delta_time_ms >= (sunrise_duration_sec_ * 1000)) {
         is_sunrise_in_progress_ = false;
         return;
     }
 
-    uint8_t  index{(uint8_t)((delta_time * num_of_levels) / sunrise_duration_sec_)};
+    // Avoid overflow
+    uint8_t index;
+    if (delta_time_ms <= 0xFFFFFF) {
+        // This will not cause overflow
+        index = (delta_time_ms * num_of_levels) / (sunrise_duration_sec_ * 1000);
+    }
+    else {
+        // Max delta is 24 hours = 24*60*60*1000. So, this code will not cause overflow
+        index = ((delta_time_ms / 1000) * num_of_levels) / sunrise_duration_sec_;
+    }
+
     uint16_t brightness_level{pgm_read_word(&brightness_levels[index])};
     uint8_t  mapped_level{map(brightness_level, 1, 992, 0, 255)};
     pwm_.set_duty(mapped_level);
@@ -100,7 +126,7 @@ LedDriver::set_sunrise_duration_str(const String& str)
 
     uint8_t duration_min{(uint8_t)str.substring(0, 2).toInt()};
     eeprom_write_byte(&sunraise_duration_minutes_address, duration_min);
-    sunrise_duration_sec_ = 60 * duration_min;
+    set_sunrise_duration(duration_min);
 
     Serial.print(F("Stored to EEPROM Sunrise duration "));
     Serial.print((int)duration_min);
@@ -111,5 +137,14 @@ void
 LedDriver::start_sunrise()
 {
     is_sunrise_in_progress_ = true;
-    sunrise_start_time_     = timer_.get_time();
+    sunrise_start_time_     = millis();
+}
+
+void
+LedDriver::set_sunrise_duration(uint32_t duration_m)
+{
+    sunrise_duration_sec_ = duration_m * 60;
+
+    // Adjust updating period
+    adjusted_updating_period_ms_ = min(initial_updating_period_ms_, (sunrise_duration_sec_ * 1000) / num_of_levels);
 }

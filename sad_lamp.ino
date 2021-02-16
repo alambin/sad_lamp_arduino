@@ -31,7 +31,7 @@ SerialCommandReader serial_command_reader;
 // FanPWM              fan(3, Pwm::PWMSpeed::HZ_31372);
 Led           led(LED_BUILTIN);
 Timer         timer;
-LedDriver     led_driver(LED_DRIVER_PWM_PIN, Pwm::PWMSpeed::HZ_490, timer);
+LedDriver     led_driver(LED_DRIVER_PWM_PIN, Pwm::PWMSpeed::HZ_490);
 DoutPwm       dout_pwm(FAN1_PIN, FAN2_PIN);
 Potentiometer potentiometer(POTENTIOMETER_PIN, 10);
 }  // namespace
@@ -252,8 +252,6 @@ void
 loop()
 {
     potentiometer.loop();
-
-    delay(10);
 }
 */
 
