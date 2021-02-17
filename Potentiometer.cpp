@@ -1,4 +1,4 @@
-#include "Potentiometer.h"
+#include "potentiometer.h"
 
 #include <Arduino.h>
 

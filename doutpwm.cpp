@@ -30,7 +30,7 @@ DoutPwm::setup()
     uint8_t steps_number{eeprom_read_byte(&fan_pwm_steps_number_address)};
     set_pwm_steps_number(steps_number);
 
-    Serial.print(F("Read from EEPROM fan PWM frequency ("));
+    Serial.print(F("Read from EEPROM: fan PWM frequency ("));
     Serial.print(frequency);
     Serial.print(F(") and steps number ("));
     Serial.print((int)steps_number);

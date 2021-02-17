@@ -6,16 +6,23 @@
 #include <Time.h>
 #include <WString.h>
 
+#include "utils.h"
+
 class Timer : public IComponent
 {
 public:
-    using AlarmCallbackType = void (*)();
+    class AlarmHandler
+    {
+    public:
+        virtual void on_alarm() = 0;
+    };
+
     explicit Timer(uint32_t reading_period_ms = 500);
     void setup() override;
     void loop();
 
     void set_alarm_str(const String& str);
-    void set_alarm_callback(AlarmCallbackType callback);
+    void register_alarm_handler(AlarmHandler* alarm_handler);
     void toggle_alarm();
 
     void   set_time_str(const String& str) const;
@@ -53,7 +60,7 @@ private:
     AlarmData         alarm_;
     AlarmDataExtended last_triggered_alarm_;
     bool              is_alarm_enabled_;
-    AlarmCallbackType callback_;
+    AlarmHandler*     alarm_handler_;
 };
 
 #endif  // TIMER_H_

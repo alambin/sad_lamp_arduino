@@ -78,7 +78,7 @@ LedDriver::setup()
     uint8_t duration_min{(uint8_t)eeprom_read_byte(&sunraise_duration_minutes_address)};
     set_sunrise_duration(duration_min);
 
-    Serial.print(F("Read from EEPROM Sunrise duration "));
+    Serial.print(F("Read from EEPROM: Sunrise duration "));
     Serial.print((int)duration_min);
     Serial.println(F(" minutes"));
 }
@@ -90,6 +90,7 @@ LedDriver::loop()
         return;
     }
 
+    // Do not execute too often
     auto now = millis();
     if ((now - last_updating_time_) < adjusted_updating_period_ms_) {
         return;
@@ -98,24 +99,13 @@ LedDriver::loop()
 
     uint32_t delta_time_ms{(now - sunrise_start_time_)};
     if (delta_time_ms >= (sunrise_duration_sec_ * 1000)) {
+        // Sunrise is finished
         is_sunrise_in_progress_ = false;
+        pwm_.set_duty(255);
         return;
     }
 
-    // Avoid overflow
-    uint8_t index;
-    if (delta_time_ms <= 0xFFFFFF) {
-        // This will not cause overflow
-        index = (delta_time_ms * num_of_levels) / (sunrise_duration_sec_ * 1000);
-    }
-    else {
-        // Max delta is 24 hours = 24*60*60*1000. So, this code will not cause overflow
-        index = ((delta_time_ms / 1000) * num_of_levels) / sunrise_duration_sec_;
-    }
-
-    uint16_t brightness_level{pgm_read_word(&brightness_levels[index])};
-    uint8_t  mapped_level{map(brightness_level, 1, 992, 0, 255)};
-    pwm_.set_duty(mapped_level);
+    pwm_.set_duty(map_sunrise_time_to_level(delta_time_ms));
 }
 
 void
@@ -141,10 +131,67 @@ LedDriver::start_sunrise()
 }
 
 void
+LedDriver::turn_off()
+{
+    is_sunrise_in_progress_ = false;
+    pwm_.set_duty(0);
+}
+
+void
+LedDriver::set_brightness(uint16_t level)
+{
+    is_sunrise_in_progress_ = false;  // Manual control of brightness cancells sunrise
+    pwm_.set_duty(map_manual_control_to_level(level));
+}
+
+void
 LedDriver::set_sunrise_duration(uint32_t duration_m)
 {
     sunrise_duration_sec_ = duration_m * 60;
 
     // Adjust updating period
     adjusted_updating_period_ms_ = min(initial_updating_period_ms_, (sunrise_duration_sec_ * 1000) / num_of_levels);
+}
+
+uint8_t
+invert_level(uint8_t level)
+{
+    return 255 - level;
+}
+
+uint8_t
+LedDriver::map_sunrise_time_to_level(uint32_t delta_time_ms)
+{
+    // Avoid overflow
+    uint8_t index;
+    if (delta_time_ms <= 0xFFFFFF) {
+        // This will not cause overflow
+        index = (delta_time_ms * num_of_levels) / (sunrise_duration_sec_ * 1000);
+    }
+    else {
+        // Max delta is 24 hours = 24*60*60*1000. So, this code will not cause overflow
+        index = ((delta_time_ms / 1000) * num_of_levels) / sunrise_duration_sec_;
+    }
+
+    uint16_t brightness_level{pgm_read_word(&brightness_levels[index])};
+    uint8_t  mapped_level{map(brightness_level, 1, 992, 0, 255)};
+
+    // Return inverted PWM duty cycle, because current 100% duty cycle makes 0 ohm on DIM input of LED driver, which
+    // corresponds to 0% brightness
+    return invert_level(mapped_level);
+}
+
+uint8_t
+LedDriver::map_manual_control_to_level(uint16_t manual_level)
+{
+    // manual_level is read from potentiometer. Usually dependency of potentiometer's resistance from rotation angle is
+    // not lineral, so this function's goal is to provide mapping between real readings from potentiometer and LED
+    // brightness level
+    // ALSO take into account percepted brightness and real LED brighness (as it is made in map_sunrise_time_to_level())
+
+    // TODO: implement mapping. Input range 0-1024. Output range 0-255.
+
+    // Return inverted PWM duty cycle, because current 100% duty cycle makes 0 ohm on DIM input of LED driver, which
+    // corresponds to 0% brightness
+    return invert_level(manual_level / 4);
 }

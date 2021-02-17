@@ -12,7 +12,7 @@ Timer::Timer(uint32_t reading_period_ms = 500)
   , last_reading_time_{0}
   , alarm_{0, 0}
   , is_alarm_enabled_{false}
-  , callback_{nullptr}
+  , alarm_handler_{nullptr}
 {
 }
 
@@ -23,7 +23,7 @@ Timer::setup()
     alarm_.minute     = eeprom_read_byte(&alarm_minutes_address);
     is_alarm_enabled_ = (eeprom_read_byte(&is_alarm_on_address) == 1);
 
-    Serial.print(F("Read from EEPROM alarm time "));
+    Serial.print(F("Read from EEPROM: alarm time "));
     Serial.print((int)alarm_.hour);
     Serial.print(F(":"));
     Serial.print((int)alarm_.minute);
@@ -37,7 +37,7 @@ Timer::setup()
 void
 Timer::loop()
 {
-    if ((!is_alarm_enabled_) || (callback_ == nullptr)) {
+    if ((!is_alarm_enabled_) || (alarm_handler_ == nullptr)) {
         return;
     }
 
@@ -54,15 +54,15 @@ Timer::loop()
         // Trigger alarm only once
         if (!(last_triggered_alarm_ == datetime)) {
             last_triggered_alarm_ = datetime;
-            callback_();
+            alarm_handler_->on_alarm();
         }
     }
 }
 
 void
-Timer::set_alarm_callback(Timer::AlarmCallbackType callback)
+Timer::register_alarm_handler(AlarmHandler* alarm_handler)
 {
-    callback_ = callback;
+    alarm_handler_ = alarm_handler;
 }
 
 String

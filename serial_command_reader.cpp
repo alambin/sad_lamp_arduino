@@ -1,14 +1,16 @@
 #include "serial_command_reader.h"
 
-#include "HardwareSerial.h"
+#include <HardwareSerial.h>
+
+SerialCommandReader&
+SerialCommandReader::instance()
+{
+    static SerialCommandReader instance;
+    return instance;
+}
 
 SerialCommandReader::SerialCommandReader()
   : is_input_data_ready_{false}
-{
-}
-
-void
-SerialCommandReader::setup()
 {
     Serial.begin(9600);
 }
@@ -70,4 +72,11 @@ SerialCommandReader::on_serial_event()
         input_data_          = Serial.readStringUntil('\n');
         is_input_data_ready_ = true;
     }
+}
+
+// Arduino's predefined function-callback on receiving serial data
+void
+serialEvent()
+{
+    SerialCommandReader::instance().on_serial_event();
 }

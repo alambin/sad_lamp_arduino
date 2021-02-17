@@ -1,11 +1,9 @@
 #ifndef SERIAL_PORT_H_
 #define SERIAL_PORT_H_
 
-#include "IComponent.h"
-
 #include <WString.h>
 
-class SerialCommandReader : public IComponent
+class SerialCommandReader
 {
 public:
     struct Command
@@ -23,14 +21,21 @@ public:
         String arguments;
     };
 
-    SerialCommandReader();
-    void    setup() override;
+    // Singleton
+    static SerialCommandReader& instance();
+    SerialCommandReader(const SerialCommandReader&) = delete;
+    SerialCommandReader(SerialCommandReader&&)      = delete;
+    SerialCommandReader& operator=(const SerialCommandReader&) = delete;
+    SerialCommandReader& operator=(const SerialCommandReader&&) = delete;
+
     bool    is_command_ready() const;
     Command get_command();
 
     void on_serial_event();
 
 private:
+    SerialCommandReader();
+
     String input_data_;
     bool   is_input_data_ready_;
 };

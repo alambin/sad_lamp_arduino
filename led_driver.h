@@ -19,9 +19,13 @@ public:
     void set_sunrise_duration_str(const String& str);
 
     void start_sunrise();
+    void turn_off();
+    void set_brightness(uint16_t level);
 
 private:
-    void set_sunrise_duration(uint32_t duration_m);
+    void    set_sunrise_duration(uint32_t duration_m);
+    uint8_t map_sunrise_time_to_level(uint32_t delta_time_ms);
+    uint8_t map_manual_control_to_level(uint16_t manual_level);
 
     Pwm            pwm_;
     const uint32_t initial_updating_period_ms_;
