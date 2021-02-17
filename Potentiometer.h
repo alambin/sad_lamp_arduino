@@ -24,6 +24,12 @@ private:
                                           float k_slow    = 0.3f,
                                           float k_fast    = 0.9f,
                                           float threshold = 10.0f);
+    // Int versions of RunningAverage. They are faster, but requires almost the same memory. More details in .cpp
+    int16_t Potentiometer::filterRunningAverageInt(int16_t new_value);
+    int16_t filterRunningAverageAdaptiveInt(int16_t new_value,
+                                            int8_t  k_slow    = 3,
+                                            int8_t  k_fast    = 9,
+                                            int8_t  threshold = 10);
 
     const uint8_t  pin_;
     const uint32_t sampling_ms_;
@@ -32,6 +38,7 @@ private:
     uint16_t                 samples[samples_size_];
     uint8_t                  current_sampe_index_;
     float                    running_average_value_;
+    int16_t                  running_average_int_value_;
     uint16_t                 current_value_;
     uint32_t                 last_sampling_time_;
 
