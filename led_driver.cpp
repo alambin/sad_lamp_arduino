@@ -58,6 +58,13 @@ constexpr uint8_t num_of_levels{sizeof(brightness_levels) / sizeof(brightness_le
 //     0x9B, 0x9D, 0x9F, 0xA1, 0xA3, 0xA5, 0xA6, 0xA8, 0xAA, 0xAC, 0xAE, 0xB0, 0xB2, 0xB4, 0xB6, 0xB8, 0xBA, 0xBD, 0xBF,
 //     0xC1, 0xC3, 0xC5, 0xC7, 0xC9, 0xCC, 0xCE, 0xD0, 0xD2, 0xD4, 0xD7, 0xD9, 0xDB, 0xDD, 0xE0, 0xE2, 0xE4, 0xE7, 0xE9,
 //     0xEB, 0xEE, 0xF0, 0xF3, 0xF5, 0xF8, 0xFA, 0xFD, 0xFF};
+
+uint8_t
+invert_level(uint8_t level)
+{
+    return 255 - level;
+}
+
 }  // namespace
 
 LedDriver::LedDriver(uint8_t pin, Pwm::PWMSpeed pwm_speed, uint32_t updating_period_ms)
@@ -100,8 +107,8 @@ LedDriver::loop()
     uint32_t delta_time_ms{(now - sunrise_start_time_)};
     if (delta_time_ms >= (sunrise_duration_sec_ * 1000)) {
         // Sunrise is finished
-        is_sunrise_in_progress_ = false;
-        pwm_.set_duty(255);
+        stop_sunrise();
+        pwm_.set_duty(invert_level(255));  // Keep lamp turned on
         return;
     }
 
@@ -131,16 +138,15 @@ LedDriver::start_sunrise()
 }
 
 void
-LedDriver::turn_off()
+LedDriver::stop_sunrise()
 {
     is_sunrise_in_progress_ = false;
-    pwm_.set_duty(0);
 }
 
 void
 LedDriver::set_brightness(uint16_t level)
 {
-    is_sunrise_in_progress_ = false;  // Manual control of brightness cancells sunrise
+    stop_sunrise();  // Manual control of brightness cancells sunrise
     pwm_.set_duty(map_manual_control_to_level(level));
 }
 
@@ -151,12 +157,6 @@ LedDriver::set_sunrise_duration(uint32_t duration_m)
 
     // Adjust updating period
     adjusted_updating_period_ms_ = min(initial_updating_period_ms_, (sunrise_duration_sec_ * 1000) / num_of_levels);
-}
-
-uint8_t
-invert_level(uint8_t level)
-{
-    return 255 - level;
 }
 
 uint8_t

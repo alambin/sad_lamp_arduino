@@ -6,3 +6,4 @@ uint8_t EEMEM  sunraise_duration_minutes_address;
 uint8_t EEMEM  is_alarm_on_address;
 uint8_t EEMEM  alarm_hours_address;
 uint8_t EEMEM  alarm_minutes_address;
+uint8_t EEMEM  alarm_dow_address;

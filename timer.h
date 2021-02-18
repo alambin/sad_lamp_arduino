@@ -17,9 +17,21 @@ public:
         virtual void on_alarm() = 0;
     };
 
+    enum class DaysOfWeek : uint8_t
+    {
+        kMonday    = B00000001,
+        kTuesday   = B00000010,
+        kWednesday = B00000100,
+        kThursday  = B00001000,
+        kFriday    = B00010000,
+        kSaturday  = B00100000,
+        kSunday    = B01000000,
+        kEveryDay  = B01111111
+    };
+
     explicit Timer(uint32_t reading_period_ms = 500);
     void setup() override;
-    void loop();
+    void track_alarm();
 
     void set_alarm_str(const String& str);
     void register_alarm_handler(AlarmHandler* alarm_handler);
@@ -32,35 +44,26 @@ public:
 private:
     struct AlarmData
     {
-        uint8_t hour;
-        uint8_t minute;
-    };
+        AlarmData();
+        AlarmData(uint8_t h, uint8_t m, DaysOfWeek dw);
+        AlarmData& operator=(const tmElements_t& time_elements);
+        bool       operator==(const tmElements_t& time_elements) const;
 
-    class AlarmDataExtended
-    {
-    public:
-        AlarmDataExtended();
-        explicit AlarmDataExtended(const tmElements_t& time_elements);
-        AlarmDataExtended& operator=(const tmElements_t& time_elements);
-        bool               operator==(const tmElements_t& time_elements) const;
-
-    private:
-        AlarmData alarm_data;
-        uint8_t   day;
-        uint8_t   month;
-        uint8_t   year;
+        uint8_t    hour;
+        uint8_t    minute;
+        DaysOfWeek dow;
     };
 
     tmElements_t str_to_datetime(const String& str) const;
     AlarmData    str_to_alarm(const String& str) const;
     String       datetime_to_str(const tmElements_t& datetime) const;
 
-    const uint32_t    reading_period_ms_;
-    uint32_t          last_reading_time_;
-    AlarmData         alarm_;
-    AlarmDataExtended last_triggered_alarm_;
-    bool              is_alarm_enabled_;
-    AlarmHandler*     alarm_handler_;
+    const uint32_t reading_period_ms_;
+    uint32_t       last_reading_time_;
+    AlarmData      alarm_;
+    AlarmData      last_triggered_alarm_;
+    bool           is_alarm_enabled_;
+    AlarmHandler*  alarm_handler_;
 };
 
 #endif  // TIMER_H_

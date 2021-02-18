@@ -19,8 +19,8 @@ public:
     void set_sunrise_duration_str(const String& str);
 
     void start_sunrise();
-    void turn_off();
-    void set_brightness(uint16_t level);
+    void stop_sunrise();
+    void set_brightness(uint16_t level);  // level is in range [0..1024]
 
 private:
     void    set_sunrise_duration(uint32_t duration_m);

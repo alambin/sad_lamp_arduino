@@ -21,6 +21,12 @@ public:
     void on_alarm() override;
 
 private:
+    void process_commands_from_serial();
+
+    void handle_manual_mode();
+    void enable_manual_mode();
+    void disable_manual_mode();
+
     void print_usage() const;
 
     Timer         timer_;
@@ -28,6 +34,8 @@ private:
     Potentiometer potentiometer_;
     // FanPWM              fan_;
     // DoutPwm             dout_pwm_;
+
+    bool is_manual_mode_;
 };
 
 #endif  // LAMP_CONTROLLER_H_

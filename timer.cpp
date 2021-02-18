@@ -1,16 +1,42 @@
 #include "timer.h"
 
+#include <limits.h>
+
 #include <Arduino.h>
 #include <DS1307RTC.h>
-// #include <stdio.h>
-// #include "HardwareSerial.h"
 
 #include "eeprom_map.h"
+
+namespace
+{
+Timer::DaysOfWeek
+timelib_wday_to_dow(uint8_t c)
+{
+    switch (c) {
+    case 1:
+        return Timer::DaysOfWeek::kSunday;
+    case 2:
+        return Timer::DaysOfWeek::kMonday;
+    case 3:
+        return Timer::DaysOfWeek::kTuesday;
+    case 4:
+        return Timer::DaysOfWeek::kWednesday;
+    case 5:
+        return Timer::DaysOfWeek::kThursday;
+    case 6:
+        return Timer::DaysOfWeek::kFriday;
+    case 7:
+        return Timer::DaysOfWeek::kSaturday;
+    default:
+        return Timer::DaysOfWeek::kEveryDay;
+    }
+}
+}  // namespace
 
 Timer::Timer(uint32_t reading_period_ms = 500)
   : reading_period_ms_{reading_period_ms}
   , last_reading_time_{0}
-  , alarm_{0, 0}
+  , last_triggered_alarm_{0xFF, 0xFF, DaysOfWeek::kEveryDay}
   , is_alarm_enabled_{false}
   , alarm_handler_{nullptr}
 {
@@ -21,12 +47,15 @@ Timer::setup()
 {
     alarm_.hour       = eeprom_read_byte(&alarm_hours_address);
     alarm_.minute     = eeprom_read_byte(&alarm_minutes_address);
+    alarm_.dow        = static_cast<Timer::DaysOfWeek>(eeprom_read_byte(&alarm_dow_address));
     is_alarm_enabled_ = (eeprom_read_byte(&is_alarm_on_address) == 1);
 
     Serial.print(F("Read from EEPROM: alarm time "));
     Serial.print((int)alarm_.hour);
     Serial.print(F(":"));
     Serial.print((int)alarm_.minute);
+    Serial.print(F(" DoW= 0x"));
+    Serial.print((int)alarm_.dow, HEX);
     Serial.print(F(". Alarm is "));
     Serial.println(is_alarm_enabled_ ? F("enabled") : F("disabled"));
 }
@@ -35,7 +64,7 @@ Timer::setup()
 // specified day of week, either on specified day of month. But in case of SAD Lamp we want alarm to trigger every day.
 // The only option to do it is to check current hour and minute in Arduino's main loop.
 void
-Timer::loop()
+Timer::track_alarm()
 {
     if ((!is_alarm_enabled_) || (alarm_handler_ == nullptr)) {
         return;
@@ -49,8 +78,13 @@ Timer::loop()
     last_reading_time_ = now;
 
     tmElements_t datetime;
-    if (RTC.read(datetime) &&
-        ((datetime.Hour == alarm_.hour) && (datetime.Minute == alarm_.minute) && (datetime.Second == 0))) {
+    if (!RTC.read(datetime)) {
+        return;
+    }
+
+    bool does_dow_match{(uint8_t)alarm_.dow & (uint8_t)timelib_wday_to_dow(datetime.Wday)};
+    if (does_dow_match && (datetime.Hour == alarm_.hour) && (datetime.Minute == alarm_.minute) &&
+        (datetime.Second == 0)) {
         // Trigger alarm only once
         if (!(last_triggered_alarm_ == datetime)) {
             last_triggered_alarm_ = datetime;
@@ -103,11 +137,14 @@ Timer::set_alarm_str(const String& str)
     // Store new alarm value in EEPROM
     eeprom_write_byte(&alarm_hours_address, alarm_.hour);
     eeprom_write_byte(&alarm_minutes_address, alarm_.minute);
+    eeprom_write_byte(&alarm_dow_address, (uint8_t)(alarm_.dow));
 
     Serial.print(F("Stored to EEPROM alarm at "));
     Serial.print((int)alarm_.hour);
     Serial.print(F(":"));
-    Serial.println((int)alarm_.minute);
+    Serial.print((int)alarm_.minute);
+    Serial.print(F(" DoW= 0x"));
+    Serial.println((int)alarm_.dow, HEX);
 }
 
 void
@@ -126,48 +163,52 @@ Timer::toggle_alarm()
     Serial.println(is_alarm_enabled_ ? F("enabled") : F("disabled"));
 }
 
-Timer::AlarmDataExtended::AlarmDataExtended()
-  : alarm_data{0, 0}
-  , day{0}
-  , month{0}
-  , year{0}
+Timer::AlarmData::AlarmData()
+  : AlarmData(0, 0, Timer::DaysOfWeek::kEveryDay)
 {
 }
 
-Timer::AlarmDataExtended::AlarmDataExtended(const tmElements_t& time_elements)
-  : alarm_data{time_elements.Hour, time_elements.Minute}
-  , day{time_elements.Day}
-  , month{time_elements.Month}
-  , year{time_elements.Year}
+Timer::AlarmData::AlarmData(uint8_t h, uint8_t m, DaysOfWeek dw)
+  : hour{h}
+  , minute{m}
+  , dow{dw}
 {
 }
 
-Timer::AlarmDataExtended&
-Timer::AlarmDataExtended::operator=(const tmElements_t& time_elements)
+Timer::AlarmData&
+Timer::AlarmData::operator=(const tmElements_t& time_elements)
 {
-    AlarmDataExtended tmp(time_elements);
-    *this = tmp;
+    hour   = time_elements.Hour;
+    minute = time_elements.Minute;
+    // Do NOT take DoW into account
     return *this;
 }
 
 bool
-Timer::AlarmDataExtended::operator==(const tmElements_t& time_elements) const
+Timer::AlarmData::operator==(const tmElements_t& time_elements) const
 {
-    return ((alarm_data.hour == time_elements.Hour) && (alarm_data.minute == time_elements.Minute) &&
-            (day == time_elements.Day) && (month == time_elements.Month) && (year == time_elements.Year));
+    // Do NOT take DoW into account
+    return ((hour == time_elements.Hour) && (minute == time_elements.Minute));
 }
 
 tmElements_t
 Timer::str_to_datetime(const String& str) const
 {
-    tmElements_t datetime;
+    tmElements_t tm;
     // HH:MM:SS DD/MM/YYYY
-    datetime.Hour   = str.substring(0, 2).toInt();
-    datetime.Minute = str.substring(3, 5).toInt();
-    datetime.Second = str.substring(6, 8).toInt();
-    datetime.Day    = str.substring(9, 11).toInt();
-    datetime.Month  = str.substring(12, 14).toInt();
-    datetime.Year   = CalendarYrToTm(str.substring(15, 19).toInt());
+    tm.Hour   = str.substring(0, 2).toInt();
+    tm.Minute = str.substring(3, 5).toInt();
+    tm.Second = str.substring(6, 8).toInt();
+    tm.Day    = str.substring(9, 11).toInt();
+    tm.Month  = str.substring(12, 14).toInt();
+    tm.Year   = CalendarYrToTm(str.substring(15, 19).toInt());
+
+    // We have to set week day manually, because DS1307RTC library doesn't do it.
+    // We are doing this calculation by building time_t (seconds since 19700) from input data and by converting it
+    // back to tmElements_t by breakTime() function. This function calculates week day.
+    tmElements_t datetime;
+    breakTime(makeTime(tm), datetime);
+
     return datetime;
 }
 
@@ -177,7 +218,16 @@ Timer::str_to_alarm(const String& str) const
     // HH:MM
     uint8_t h = str.substring(0, 2).toInt();
     uint8_t m = str.substring(3, 5).toInt();
-    return {h, m};
+
+    DaysOfWeek dow = DaysOfWeek::kEveryDay;
+    if (str.length() >= 7) {
+        auto res = strtoul(str.substring(6, 8).c_str(), 0, 16);
+        if (!((res == 0) || (res == ULONG_MAX))) {
+            dow = static_cast<Timer::DaysOfWeek>(res & 0x7F);
+        }
+    }
+
+    return Timer::AlarmData{h, m, dow};
 }
 
 String
