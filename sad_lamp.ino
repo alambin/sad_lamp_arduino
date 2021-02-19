@@ -49,10 +49,43 @@ blink_end_of_loop()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void
+print_performance(uint32_t delta)
+{
+    static bool     measurements_started = false;
+    static uint32_t runc_count           = 0;
+    static uint32_t avg_delta            = 0;
+
+    // Start measuring only from 100th iteration
+    if ((++runc_count >= 100) || measurements_started) {
+        if (!measurements_started) {
+            runc_count           = 1;
+            measurements_started = true;
+        }
+
+        avg_delta += delta;
+    }
+
+    if ((runc_count & 0x7FFF) == 0) {
+        Serial.print(F("Main loop execution time: "));
+        Serial.print(avg_delta / runc_count);
+        Serial.print(F(" us"));
+        Serial.println();
+
+        avg_delta  = 0;
+        runc_count = 0;
+    }
+}
+
 // the loop function runs over and over again forever
 void
 loop()
 {
+    auto start_time = micros();
+    lamp_controller.loop();
+    // auto delta = micros() - start_time;
+    // print_performance(delta);
+
     // pwm_up_with_blinking(10);
     // test_dout_30hz_pwm_duty_cycles();
 
@@ -86,9 +119,6 @@ loop()
     //       russian.alibaba.com/product-detail/photographic-lighting-citizen-same-size-clu048-xl-28-28-24-200w-300w-cri95-5600k-us-bridgelux-3-years-ce-rohs-lm-80-62555834989.html?spm=a2700.8699010.normalList.2.5cab32e0seliz3&s=p
     //       https:  //
     //       russian.alibaba.com/product-detail/led-cob-clu048-1818-for-150-200w-led-high-bay-or-led-flood-light-made-in-japan-28x28mm-ra-70-80-90-cct-3000-4000-5000-5700k-62361111010.html?spm=a2700.8699010.normalList.56.5cab32e0seliz3
-
-    lamp_controller.loop();
-    // blink_end_of_loop();
 }
 
 

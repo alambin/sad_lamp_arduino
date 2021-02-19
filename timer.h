@@ -31,7 +31,7 @@ public:
 
     explicit Timer(uint32_t reading_period_ms = 500);
     void setup() override;
-    void track_alarm();
+    void check_alarm();
 
     void set_alarm_str(const String& str);
     void register_alarm_handler(AlarmHandler* alarm_handler);

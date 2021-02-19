@@ -6,12 +6,14 @@
 
 namespace
 {
-const uint8_t  kled_driver_pin         = 9;
-const uint8_t  kpotentiometer_pin      = A0;
-const uint8_t  kfan1_pin               = 2;
-const uint8_t  kfan2_pin               = 4;
-const uint16_t kmanual_mode_threshold  = 100;
-const uint16_t kmanual_mode_hysteresis = 0.1 * kmanual_mode_threshold;
+const uint8_t kled_driver_pin    = 9;
+const uint8_t kpotentiometer_pin = A0;
+const uint8_t kfan1_pin          = 2;
+const uint8_t kfan2_pin          = 4;
+
+const uint16_t kmanual_mode_level      = 100;
+const uint16_t kmanual_mode_hysteresis = 0.1 * kmanual_mode_level;
+const uint16_t kmanual_mode_threshold  = 4;
 
 // const uint16_t knum_of_pwm_steps      = 10;
 // const uint16_t kpwm_frequency         = 3;
@@ -23,6 +25,7 @@ LampController::LampController()
   // , fan_(3, Pwm::PWMSpeed::HZ_31372)
   // , dout_pwm_(kfan1_pin, kfan2_pin)
   , is_manual_mode_{false}
+  , last_potentiometer_val_{0XFFFF}
 {
 }
 
@@ -53,23 +56,26 @@ LampController::loop()
     // TODO: BUG. By some reason data read from EEPROM with errors. Ex. toggle-alarm frag or alarm time.
     // RTC data seems not corrupted.
 
+    // TODO: why fans stopped making noice? May be because of that (wrong settings?) LED driver is reeeeally slowly
+    // reacts on changing of PWM? Input LED of key-module reacts immediately. Is driver reacts fast when connected
+    // directly to potentiometer?
+
     potentiometer_.loop();
     handle_manual_mode();
 
     if (is_manual_mode_) {
-        // Set brightness manually.
-        // TODO: But it should be done only in case current value differs from previous
-        led_driver_.set_brightness(potentiometer_.read());
+        // Set brightness manually if current potentiometer value differs from previous
+        auto potentiometer_val = potentiometer_.read();
+        if (abs(potentiometer_val - last_potentiometer_val_) >= kmanual_mode_threshold) {
+            last_potentiometer_val_ = potentiometer_val;
+            led_driver_.set_brightness(potentiometer_.read());
+        }
 
-        // In manual mode we are not reacting on alarm from timer and not running sunrise. So, no need to call loop()
-        // for corresponding components
-        // This is kind of workaround to increase performance. To make it in better way you probably should execute
-        // these track_alarm() functions but in alarm callback do not call start_sunrise(). But in this case Timer will have to
-        // read data from RTC on every loop()
+        // In manual mode we are not reacting on alarm from timer and not running sunrise.
     }
     else {
-        timer_.track_alarm();
-        led_driver_.loop();
+        timer_.check_alarm();
+        led_driver_.run_sunrise();
     }
 
     process_commands_from_serial();
@@ -86,6 +92,7 @@ LampController::loop()
             return;
         }
 
+        // Just for debugging
         Serial.print("Potentiometer = ");
         Serial.println(potentiometer_.read());
         Serial.println(time);
@@ -103,7 +110,7 @@ void
 LampController::process_commands_from_serial()
 {
     if (SerialCommandReader::instance().is_command_ready()) {
-        auto command{SerialCommandReader::instance().get_command()};
+        auto command{SerialCommandReader::instance().read_command()};
         switch (command.type) {
         case SerialCommandReader::Command::CommandType::SET_TIME:
             timer_.set_time_str(command.arguments);
@@ -136,11 +143,11 @@ LampController::handle_manual_mode()
 {
     auto potentiometer_value = potentiometer_.read();
     if (!is_manual_mode_) {
-        if (potentiometer_value >= kmanual_mode_threshold) {
+        if (potentiometer_value >= kmanual_mode_level) {
             enable_manual_mode();
         }
     }
-    else if (potentiometer_value < (kmanual_mode_threshold - kmanual_mode_hysteresis)) {
+    else if (potentiometer_value < (kmanual_mode_level - kmanual_mode_hysteresis)) {
         disable_manual_mode();
     }
 }
@@ -149,19 +156,15 @@ void
 LampController::enable_manual_mode()
 {
     is_manual_mode_ = true;
-    led_driver_.stop_sunrise();
-
+    led_driver_.stop_sunrise();  // Stop sunrise. Just in case it was in progress
     Serial.println(F("Manual mode enabled"));
-    // TODO: what else required at entering manual mode? Disabling sunrise, etc.?
 }
 
 void
 LampController::disable_manual_mode()
 {
     is_manual_mode_ = false;
-
     Serial.println(F("Manual mode disabled"));
-    // TODO: do we need to do anything at this moment?
 }
 
 void

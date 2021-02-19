@@ -64,7 +64,7 @@ Timer::setup()
 // specified day of week, either on specified day of month. But in case of SAD Lamp we want alarm to trigger every day.
 // The only option to do it is to check current hour and minute in Arduino's main loop.
 void
-Timer::track_alarm()
+Timer::check_alarm()
 {
     if ((!is_alarm_enabled_) || (alarm_handler_ == nullptr)) {
         return;

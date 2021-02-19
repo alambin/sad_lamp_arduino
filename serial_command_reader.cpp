@@ -22,7 +22,7 @@ SerialCommandReader::is_command_ready() const
 }
 
 SerialCommandReader::Command
-SerialCommandReader::get_command()
+SerialCommandReader::read_command()
 {
     is_input_data_ready_ = false;
     String input_string{input_data_};

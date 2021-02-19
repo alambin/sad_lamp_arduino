@@ -35,7 +35,8 @@ private:
     // FanPWM              fan_;
     // DoutPwm             dout_pwm_;
 
-    bool is_manual_mode_;
+    bool     is_manual_mode_;
+    uint16_t last_potentiometer_val_;
 };
 
 #endif  // LAMP_CONTROLLER_H_

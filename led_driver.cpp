@@ -91,7 +91,7 @@ LedDriver::setup()
 }
 
 void
-LedDriver::loop()
+LedDriver::run_sunrise()
 {
     if (!is_sunrise_in_progress_) {
         return;

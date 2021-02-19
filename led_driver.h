@@ -14,7 +14,7 @@ class LedDriver : public IComponent
 public:
     LedDriver(uint8_t pin, Pwm::PWMSpeed pwm_speed, uint32_t updating_period_ms = 1000);
     void setup() override;
-    void loop();
+    void run_sunrise();
 
     void set_sunrise_duration_str(const String& str);
 

@@ -29,7 +29,7 @@ public:
     SerialCommandReader& operator=(const SerialCommandReader&&) = delete;
 
     bool    is_command_ready() const;
-    Command get_command();
+    Command read_command();
 
     void on_serial_event();
 
