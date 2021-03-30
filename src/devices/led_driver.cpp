@@ -43,7 +43,7 @@ constexpr uint8_t num_of_levels{sizeof(brightness_levels) / sizeof(brightness_le
 //     169, 171, 173, 175, 177, 180, 182, 184, 186, 189, 191, 193, 196, 198, 200, 203, 205, 208, 210, 213, 215, 218,
 //     220, 223, 225, 228, 231, 233, 236, 239, 241, 244, 247, 249, 252, 255};
 
-// uint8_t gammaCorrect[] PROGMEM = {
+// constexpr PROGMEM uint8_t gammaCorrect[] = {
 //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 //     0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02, 0x02, 0x02, 0x02, 0x02,
 //     0x02, 0x02, 0x02, 0x03, 0x03, 0x03, 0x03, 0x03, 0x04, 0x04, 0x04, 0x04, 0x04, 0x05, 0x05, 0x05, 0x05, 0x06, 0x06,
@@ -187,9 +187,11 @@ LedDriver::map_manual_control_to_level(uint16_t manual_level)
     // manual_level is read from potentiometer. Usually dependency of potentiometer's resistance from rotation angle is
     // not lineral, so this function's goal is to provide mapping between real readings from potentiometer and LED
     // brightness level
-    // ALSO take into account percepted brightness and real LED brighness (as it is made in map_sunrise_time_to_level())
-
-    // TODO: implement mapping. Input range 0-1024. Output range 0-255.
+    // In theory eyes perception curve lays above y=x, and resistance-angle curve lays below y=x. So, they should
+    // compensate each other.
+    // In practice - I don't see any difference between mapping functions.
+    // Probably we don't need mapping here. User is setting brightness manually, so he will choose brightness as he
+    // wants by changing angle of potentiometer.
 
     // Return inverted PWM duty cycle, because current 100% duty cycle makes 0 ohm on DIM input of LED driver, which
     // corresponds to 0% brightness

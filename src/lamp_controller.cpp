@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#include "serial_command_reader.h"
+#include "devices/serial_command_reader.h"
 
 namespace
 {
@@ -55,10 +55,6 @@ LampController::loop()
 {
     // TODO: BUG. By some reason data read from EEPROM with errors. Ex. toggle-alarm frag or alarm time.
     // RTC data seems not corrupted.
-
-    // TODO: why fans stopped making noice? May be because of that (wrong settings?) LED driver is reeeeally slowly
-    // reacts on changing of PWM? Input LED of key-module reacts immediately. Is driver reacts fast when connected
-    // directly to potentiometer?
 
     potentiometer_.loop();
     handle_manual_mode();
@@ -114,6 +110,10 @@ LampController::process_commands_from_serial()
         switch (command.type) {
         case SerialCommandReader::Command::CommandType::SET_TIME:
             timer_.set_time_str(command.arguments);
+            break;
+        case SerialCommandReader::Command::CommandType::GET_TIME:
+            // TODO: implement
+            Serial.print(timer_.get_time_str() + "\n");
             break;
         case SerialCommandReader::Command::CommandType::SET_ALARM:
             timer_.set_alarm_str(command.arguments);
@@ -173,6 +173,7 @@ LampController::print_usage() const
     Serial.println(F("SAD lamp controller.\n"
                      "Available commands:\n"
                      "\t\"st HH:MM:SS DD/MM/YYYY\" - set current time\n"
+                     "\t\"gt - get current time\n"
                      "\t\"sa HH:MM WW\" - set alarm on specified time (WW - day of week mask)\n"
                      "\t\"ta\" toggle alarm On/Off\n"
                      "\t\"ssd MM\" set Sunrise duration in minutes\n"

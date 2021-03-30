@@ -1,3 +1,4 @@
+/*
 // Note! You should define "throw" keyword as nothing.
 // Otherwise ArduinoSTL will generate tons of warnings that this keyword is deprecated
 //#define COUT_OUTPUT
@@ -8,14 +9,13 @@
 
 #include "lamp_controller.h"
 
-#include "doutpwm.h"
-#include "fan.h"
-#include "led.h"
-#include "led_driver.h"
-#include "potentiometer.h"
-#include "serial_command_reader.h"
-#include "timer.h"
-#include "utils.h"
+#include src/"devices/timer.h"
+#include "src/devices/doutpwm.h"
+#include "src/devices/fan.h"
+#include "src/devices/led.h"
+#include "src/devices/led_driver.h"
+#include "src/devices/potentiometer.h"
+#include "src/devices/serial_command_reader.h"
 
 namespace
 {
@@ -86,7 +86,6 @@ loop()
     // auto delta = micros() - start_time;
     // print_performance(delta);
 
-    // pwm_up_with_blinking(10);
     // test_dout_30hz_pwm_duty_cycles();
 
     // TODO:
@@ -102,7 +101,7 @@ loop()
     // V 4. Try to find high speed optocoupler so that you can replace them on my boards. Need 10 Mbit/s speed and
     //    Vcc (output voltage) up to 15V.
     //    Do NOT look at https:
-    //    aliexpress.ru/item/32914498721.html?spm=a2g0o.productlist.0.0.4b8a735dX01mxU&algo_pvid=db4f0cfc-d144-4e65-af56-f3bb5a12ab00&algo_expid=db4f0cfc-d144-4e65-af56-f3bb5a12ab00-4&btsid=0b8b034116094162831996129ef754&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_
+    //aliexpress.ru/item/32914498721.html?spm=a2g0o.productlist.0.0.4b8a735dX01mxU&algo_pvid=db4f0cfc-d144-4e65-af56-f3bb5a12ab00&algo_expid=db4f0cfc-d144-4e65-af56-f3bb5a12ab00-4&btsid=0b8b034116094162831996129ef754&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_
     //    It support only inputs on 12/24V. Output is always 5V (maximum allowed on 6N137 is 7V).
     //    Results:
     //    1) 5 Mb, 0-20V: https://datasheet.octopart.com/HCPL-2201-Avago-datasheet-8212218.pdf
@@ -116,16 +115,16 @@ loop()
     //    2) Contact on Alibaba to order/produce following items
     //       https://www.alibaba.com/product-detail/Citizen-COB-CLU048-Series-LED-MODULE_62135453445.html
     //       https:  //
-    //       russian.alibaba.com/product-detail/photographic-lighting-citizen-same-size-clu048-xl-28-28-24-200w-300w-cri95-5600k-us-bridgelux-3-years-ce-rohs-lm-80-62555834989.html?spm=a2700.8699010.normalList.2.5cab32e0seliz3&s=p
+    //russian.alibaba.com/product-detail/photographic-lighting-citizen-same-size-clu048-xl-28-28-24-200w-300w-cri95-5600k-us-bridgelux-3-years-ce-rohs-lm-80-62555834989.html?spm=a2700.8699010.normalList.2.5cab32e0seliz3&s=p
     //       https:  //
-    //       russian.alibaba.com/product-detail/led-cob-clu048-1818-for-150-200w-led-high-bay-or-led-flood-light-made-in-japan-28x28mm-ra-70-80-90-cct-3000-4000-5000-5700k-62361111010.html?spm=a2700.8699010.normalList.56.5cab32e0seliz3
+    //russian.alibaba.com/product-detail/led-cob-clu048-1818-for-150-200w-led-high-bay-or-led-flood-light-made-in-japan-28x28mm-ra-70-80-90-cct-3000-4000-5000-5700k-62361111010.html?spm=a2700.8699010.normalList.56.5cab32e0seliz3
 }
-
+*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Test of potenciometer readings and filtering
 /*
-#include "Potentiometer.h"
+#include "src/devices/Potentiometer.h"
 Potentiometer potentiometer(A0, 10);
 
 void
@@ -167,18 +166,16 @@ loop()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Test functions
+
+#include "src/devices/led.h"
+// #include "src/devices/led_driver.h"
+// #include "src/devices/potentiometer.h"
+
+Led led(LED_BUILTIN);
+// Potentiometer potentiometer(A0, 10);
+// LedDriver     led_driver(3, Pwm::PWMSpeed::HZ_490);
+
 /*
-void
-setup()
-{
-  fan.setup();
-}
-
-void
-loop()
-{
-}
-
 void
 PWMFanTest()
 {
@@ -202,94 +199,6 @@ PWMFanTest()
     led.turn_on(false);
     fan.set_speed(128);  // 50%
     delay(5000);         // 5s pause
-}
-
-void
-blink_n_times(int N)
-{
-    for (char i = 0; i < N; ++i) {
-        led.turn_on(true);
-        delay(500);
-        led.turn_on(false);
-        delay(500);
-    }
-}
-
-// Results of measuring volts on fan in case of different PWM frequency and different duty cycle
-// Small fan, small key, 30 Hz
-// 1 - 0.8V
-// 2 - 2.5V
-// 3 - 3.5
-// 4 - 4.5
-// 5 - 5.5
-// 6 - 6.5
-// 7 - 7.7
-// 8 - 8.6
-// 9 - 9.7
-// 10 - 10.8
-// 11 - 11.8
-
-// Small fan, small key, 122 Hz
-// 1 - 0.4 (not running)
-// 2 - 2.7 (not running)
-// 3 - 3.7 (not running)
-// 4 - 4.7 (not running)
-// 5 - 5.9 STARTED
-// 6 - 7
-// 7 - 8
-// 8 - 9
-// 9 - 10
-// 10 - 11.1 Still noise
-// 11 - 12   No noise
-
-// Small fan, small key, 490 Hz
-// 1 - 0.5
-// 2 - 3.8
-// 3 - 4.9
-// 4 - 5.9 STARTED
-// 5 - 6.8
-// 6 - 7.8
-// 7 - 8.8
-// 8 - 9.8
-// 9 - 10.8
-// 10 - 11.6 Still noise
-// 11 - 12   No noise
-
-// Small fan, small key, 4 kHz
-// 1 - 0.3
-// 2 - 8.9
-// 3 - 9.9
-// 4 - 10.7 Still noise
-// 5 - 11.4 No noise
-// 6 and later- 12
-
-// New n-channel key module. Small fan. 32 kHz. NO NOISE AT ALL !!!
-// 1 - 0.33
-// 2 - 3.1
-// 3 - 4.1
-// 4 - 5.7
-// 5 - 6.9
-// 6 - 7.95
-// 7 - 8.9
-// 8 - 9.7
-// 9 - 10.5
-// 10 - 11.2
-// 11 - 11.9
-
-// New n-channel key module. Small fan. 32 kHz. Doesnt start. No power on fan. Idk why
-// Same but 4 kHz - fan starts, but on high duty and with noise. Even at max PWM it gives max 9.7V to fan
-
-// Test PWM by changing duty cycle in steps "numOfGrades" times from 0% to 100%
-void
-pwm_up_with_blinking(char numOfGrades)
-{
-    const int deltaPWM = 255 / numOfGrades;
-
-    for (char step = 0; step <= numOfGrades; ++step) {
-        fan.set_speed(step * deltaPWM);
-        blink_n_times(step + 1);
-        delay(5000);
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -368,8 +277,8 @@ test_dout_30hz_pwm_duty_cycles()
                 current_duty = 0;
             }
 
-            DebugPrint("New duty = ");
-            DebugPrintln(current_duty);
+            Serial.print("New duty = ");
+            Serial.println(current_duty);
 
             dout_pwm.set_duty(current_duty);
         }
@@ -377,3 +286,187 @@ test_dout_30hz_pwm_duty_cycles()
     }
 }
 */
+
+void
+blink_n_times(int N)
+{
+    for (char i = 0; i < N; ++i) {
+        led.turn_on(true);
+        delay(500);
+        led.turn_on(false);
+        delay(500);
+    }
+}
+
+// Results of measuring volts on fan in case of different PWM frequency and different duty cycle
+// Small fan, small key, 30 Hz
+// 1 - 0.8V
+// 2 - 2.5V
+// 3 - 3.5
+// 4 - 4.5
+// 5 - 5.5
+// 6 - 6.5
+// 7 - 7.7
+// 8 - 8.6
+// 9 - 9.7
+// 10 - 10.8
+// 11 - 11.8
+
+// Small fan, small key, 122 Hz
+// 1 - 0.4 (not running)
+// 2 - 2.7 (not running)
+// 3 - 3.7 (not running)
+// 4 - 4.7 (not running)
+// 5 - 5.9 STARTED
+// 6 - 7
+// 7 - 8
+// 8 - 9
+// 9 - 10
+// 10 - 11.1 Still noise
+// 11 - 12   No noise
+
+// Small fan, small key, 490 Hz
+// 1 - 0.5
+// 2 - 3.8
+// 3 - 4.9
+// 4 - 5.9 STARTED
+// 5 - 6.8
+// 6 - 7.8
+// 7 - 8.8
+// 8 - 9.8
+// 9 - 10.8
+// 10 - 11.6 Still noise
+// 11 - 12   No noise
+
+// Small fan, small key, 4 kHz
+// 1 - 0.3
+// 2 - 8.9
+// 3 - 9.9
+// 4 - 10.7 Still noise
+// 5 - 11.4 No noise
+// 6 and later- 12
+
+// New n-channel key module. Small fan. 32 kHz. NO NOISE AT ALL !!!
+// 1 - 0.33
+// 2 - 3.1
+// 3 - 4.1
+// 4 - 5.7
+// 5 - 6.9
+// 6 - 7.95
+// 7 - 8.9
+// 8 - 9.7
+// 9 - 10.5
+// 10 - 11.2
+// 11 - 11.9
+
+// New n-channel key module. Small fan. 32 kHz. Doesnt start. No power on fan. Idk why
+// Same but 4 kHz - fan starts, but on high duty and with noise. Even at max PWM it gives max 9.7V to fan
+/*
+// Test PWM by changing duty cycle in steps "numOfGrades" times from 0% to 100%
+void
+pwm_up_with_blinking(char numOfGrades)
+{
+    const int deltaPWM = 255 / numOfGrades;
+
+    for (char step = 0; step <= numOfGrades; ++step) {
+        // fan.set_speed(step * deltaPWM);
+        // analogWrite(3, step * deltaPWM);
+        led_driver.set_brightness(1024 - 4 * step * deltaPWM);
+        blink_n_times(step + 1);
+        delay(5000);
+    }
+
+    blink_n_times(5);
+}
+
+#include <SoftwareSerial.h>
+
+SoftwareSerial swSerial(12, 11);  // RX, TX
+
+void
+setup()
+{
+    // fan.setup();
+
+    Serial.begin(9600);
+    while (!Serial) {
+    }
+
+    swSerial.begin(9600);
+
+    potentiometer.setup();
+    led.setup();
+    led_driver.setup();
+}
+
+void
+loop()
+{
+    potentiometer.loop();
+    auto potentiometer_val = potentiometer.read();
+
+    // Inversion is required for red key module in case of controlling fan (NOT LED)
+    // led_driver.set_brightness(1023 - potentiometer.read());
+
+    led_driver.set_brightness(potentiometer.read());
+
+    // Copy from SW serial to HW serial and vice versa
+    if (swSerial.available()) {
+        Serial.write(swSerial.read());
+    }
+    if (Serial.available()) {
+        swSerial.write(Serial.read());
+    }
+}
+*/
+
+///////////////// Serial echo
+
+void
+setup()
+{
+    Serial.begin(9600);
+    while (!Serial) {
+    }
+    Serial.print("Initialized. Serial echo example.\n");
+}
+
+char     buffer_[256];
+uint16_t current_buf_position_{0};
+
+void
+loop()
+{
+    while (Serial.available() > 0) {
+        char ch = Serial.read();
+        if (ch == '\r') {
+            // Ignore this line ending. If ESP doesn't use println() for communication with Arduino,
+            // it should never happen.
+            continue;
+        }
+        if (ch != '\n') {
+            buffer_[current_buf_position_++] = ch;
+            continue;
+        }
+
+        buffer_[current_buf_position_++] = 0;
+        current_buf_position_            = 0;
+        String message{buffer_};
+        Serial.println(message);
+
+        if (message == "ESP: CONNECT") {
+          // Do NOT use println for inter-board communication, because for Arduino Serial.println() adds both:
+          // '\r' and '\n". So, on another side you will have to filter out '\r'
+          Serial.print("ARDUINO CONNECT ACK\n");
+        }
+
+        if (message == String("on")) {
+            led.turn_on(true);
+        }
+        else if (message == String("off")) {
+            led.turn_on(false);
+        }
+    }
+
+    blink_n_times(1);
+}

@@ -11,6 +11,7 @@ public:
         enum class CommandType : uint8_t
         {
             SET_TIME = 0,
+            GET_TIME,
             SET_ALARM,
             TOGGLE_ALARM,
             SET_SUNRISE_DURATION,

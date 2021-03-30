@@ -3,10 +3,9 @@
 
 #include "IComponent.h"
 
-#include <Time.h>
+#include <TimeLib.h>
 #include <WString.h>
-
-#include "utils.h"
+#include <binary.h>
 
 class Timer : public IComponent
 {

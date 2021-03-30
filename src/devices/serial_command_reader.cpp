@@ -2,6 +2,10 @@
 
 #include <HardwareSerial.h>
 
+namespace {
+constexpr char esp_prefix[] PROGMEM = "ESP: ";
+}  // namespace
+
 SerialCommandReader&
 SerialCommandReader::instance()
 {
@@ -43,6 +47,9 @@ SerialCommandReader::read_command()
     if (command_str == "st") {
         type = Command::CommandType::SET_TIME;
     }
+    if (command_str == "gt") {
+        type = Command::CommandType::GET_TIME;
+    }
     else if (command_str == "sa") {
         type = Command::CommandType::SET_ALARM;
     }
@@ -65,18 +72,26 @@ SerialCommandReader::read_command()
     return {type, arguments};
 }
 
+// TODO: implement it as NOT singleton. as it is done for ESP.
 void
 SerialCommandReader::on_serial_event()
 {
     if (Serial.available()) {
-        input_data_          = Serial.readStringUntil('\n');
+        auto line          = Serial.readStringUntil('\n');
+
+        // TODO: test it!
+        if (!line.startsWith(FPSTR(esp_prefix))) {
+            return;
+        }
+
+        input_data_          = line.substring(FPSTR(esp_prefix).length() + 1);
         is_input_data_ready_ = true;
     }
 }
 
 // Arduino's predefined function-callback on receiving serial data
-void
-serialEvent()
-{
-    SerialCommandReader::instance().on_serial_event();
-}
+// void
+// serialEvent()
+// {
+//     SerialCommandReader::instance().on_serial_event();
+// }

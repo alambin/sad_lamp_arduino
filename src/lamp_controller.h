@@ -1,14 +1,14 @@
 #ifndef LAMP_CONTROLLER_H_
 #define LAMP_CONTROLLER_H_
 
-#include "IComponent.h"
+#include "devices/IComponent.h"
 
 #include <stdint.h>
 
-#include "fan.h"
-#include "led_driver.h"
-#include "potentiometer.h"
-#include "timer.h"
+#include "devices/fan.h"
+#include "devices/led_driver.h"
+#include "devices/potentiometer.h"
+#include "devices/timer.h"
 
 class LampController
   : public IComponent

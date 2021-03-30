@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include "eeprom_map.h"
 
-#include "utils.h"
+#include "..\utils.h"
 
 DoutPwm::DoutPwm(uint8_t pin1, uint8_t pin2)
   : pin1_{pin1}
