@@ -75,6 +75,7 @@ LedDriver::LedDriver(uint8_t pin, Pwm::PWMSpeed pwm_speed, uint32_t updating_per
   , is_sunrise_in_progress_{false}
   , sunrise_start_time_{0}
   , sunrise_duration_sec_{0}
+  , current_brightness_{0}
 {
 }
 
@@ -84,6 +85,7 @@ LedDriver::setup()
     pwm_.setup();
     uint16_t duration_min{(uint16_t)eeprom_read_word(&sunraise_duration_minutes_address)};
     set_sunrise_duration(duration_min);
+    set_brightness(0);
 
     Serial.print(F("Read from EEPROM: Sunrise duration "));
     Serial.print(duration_min);
@@ -107,8 +109,7 @@ LedDriver::run_sunrise()
     uint32_t delta_time_ms{(now - sunrise_start_time_)};
     if (delta_time_ms >= (sunrise_duration_sec_ * 1000)) {
         // Sunrise is finished
-        stop_sunrise();
-        pwm_.set_duty(invert_level(255));  // Keep lamp turned on
+        set_brightness(1023);  // Keep lamp turned on
         return;
     }
 
@@ -133,7 +134,11 @@ LedDriver::set_sunrise_duration_str(const String& str)
 String
 LedDriver::get_sunrise_duration_str() const
 {
-    return String(sunrise_duration_sec_ / 60);
+    // MMMM
+    char str[5];
+    // A terminating null character is automatically appended by snprintf
+    snprintf_P(str, 5, PSTR("%04d"), sunrise_duration_sec_ / 60);
+    return String(str);
 }
 
 void
@@ -154,6 +159,26 @@ LedDriver::set_brightness(uint16_t level)
 {
     stop_sunrise();  // Manual control of brightness cancells sunrise
     pwm_.set_duty(map_manual_control_to_level(level));
+}
+
+void
+LedDriver::set_brightness_str(const String& str)
+{
+    Serial.print(F("Received command 'Set brightness' "));
+    Serial.println(str);
+
+    uint16_t brightness{(uint16_t)str.substring(0, 4).toInt()};
+    set_brightness(brightness);
+}
+
+String
+LedDriver::get_brightness_str() const
+{
+    // BBBB
+    char str[5];
+    // A terminating null character is automatically appended by snprintf
+    snprintf_P(str, 5, PSTR("%04d"), current_brightness_);
+    return String(str);
 }
 
 void
@@ -181,6 +206,7 @@ LedDriver::map_sunrise_time_to_level(uint32_t delta_time_ms)
 
     uint16_t brightness_level{pgm_read_word(&brightness_levels[index])};
     uint8_t  mapped_level{map(brightness_level, 1, 992, 0, 255)};
+    current_brightness_ = mapped_level << 2;
 
     // Return inverted PWM duty cycle, because current 100% duty cycle makes 0 ohm on DIM input of LED driver, which
     // corresponds to 0% brightness
@@ -190,6 +216,8 @@ LedDriver::map_sunrise_time_to_level(uint32_t delta_time_ms)
 uint8_t
 LedDriver::map_manual_control_to_level(uint16_t manual_level)
 {
+    current_brightness_ = manual_level;
+
     // manual_level is read from potentiometer. Usually dependency of potentiometer's resistance from rotation angle is
     // not lineral, so this function's goal is to provide mapping between real readings from potentiometer and LED
     // brightness level
@@ -201,5 +229,5 @@ LedDriver::map_manual_control_to_level(uint16_t manual_level)
 
     // Return inverted PWM duty cycle, because current 100% duty cycle makes 0 ohm on DIM input of LED driver, which
     // corresponds to 0% brightness
-    return invert_level(manual_level / 4);
+    return invert_level(manual_level >> 2);
 }

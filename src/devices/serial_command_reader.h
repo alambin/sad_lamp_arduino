@@ -20,6 +20,8 @@ public:
             TOGGLE_ALARM,
             SET_SUNRISE_DURATION,
             GET_SUNRISE_DURATION,
+            SET_BRIGHTNESS,
+            GET_BRIGHTNESS,
             SET_FAN_PWM_FREQUENCY,
             SET_FAN_PWM_STEPS_NUMBER,
             CONNECT,

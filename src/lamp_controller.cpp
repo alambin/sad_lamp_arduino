@@ -27,6 +27,8 @@ constexpr char esp_enable_alarm_ack[] PROGMEM         = "TOESP: ea ACK ";
 constexpr char esp_toggle_alarm_ack[] PROGMEM         = "TOESP: ta ACK\n";
 constexpr char esp_set_sunrise_duration_ack[] PROGMEM = "TOESP: ssd ACK\n";
 constexpr char esp_get_sunrise_duration_ack[] PROGMEM = "TOESP: gsd ACK ";
+constexpr char esp_set_brightness_ack[] PROGMEM       = "TOESP: sb ACK ";
+constexpr char esp_get_brightness_ack[] PROGMEM       = "TOESP: gb ACK ";
 constexpr char esp_set_pwm_frequency_ack[] PROGMEM    = "TOESP: sff ACK\n";
 constexpr char esp_set_pwm_steps_number_ack[] PROGMEM = "TOESP: sfs ACK\n";
 constexpr char esp_connect_ack[] PROGMEM              = "TOESP: connect ACK\n";
@@ -158,6 +160,18 @@ LampController::process_commands_from_serial()
         case SerialCommandReader::Command::CommandType::GET_SUNRISE_DURATION:
             Serial.print(String(FPSTR(esp_get_sunrise_duration_ack)) + led_driver_.get_sunrise_duration_str() + "\n");
             break;
+        case SerialCommandReader::Command::CommandType::SET_BRIGHTNESS:
+            if (is_manual_mode_) {
+                Serial.print(String(FPSTR(esp_set_brightness_ack)) + F("ERROR: manual mode\n"));
+                break;
+            }
+            led_driver_.set_brightness_str(command.arguments);
+            Serial.print(String(FPSTR(esp_set_brightness_ack)) + F("DONE\n"));
+            break;
+        case SerialCommandReader::Command::CommandType::GET_BRIGHTNESS:
+            Serial.print(String(FPSTR(esp_get_brightness_ack)) + (is_manual_mode_ ? "M " : "A ") +
+                         led_driver_.get_brightness_str() + "\n");
+            break;
         case SerialCommandReader::Command::CommandType::SET_FAN_PWM_FREQUENCY:
             // dout_pwm_.set_pwm_frequency(command.arguments);
             Serial.print(String(FPSTR(esp_set_pwm_frequency_ack)));
@@ -206,9 +220,6 @@ LampController::disable_manual_mode()
     Serial.println(F("Manual mode disabled"));
 }
 
-// TODO: add sending ACKs for all commands!
-// TODO: add command to get current brightness in format "M BBBB", where M = 'M' if manual mode, or 'A' if automated
-// mode
 // TODO: add command to set brightness if mode is automated ????
 // TODO: should Arduino notify ESP when entering Auto mode (so it will be able to set brightness from WebUI)?
 //       Isn't it overkill?
@@ -216,16 +227,19 @@ LampController::disable_manual_mode()
 void
 LampController::print_usage() const
 {
-    Serial.println(F("SAD lamp controller.\n"
-                     "Available commands:\n"
-                     "\t\"ESP: st HH:MM:SS DD/MM/YYYY\" - set current time\n"
-                     "\t\"ESP: gt\" - get current time (HH:MM:SS DD/MM/YYYY)\n"
-                     "\t\"ESP: sa HH:MM WW\" - set alarm on specified time (WW - day of week mask)\n"
-                     "\t\"ESP: ga\" - get alarm (E HH:MM WW, E = \"E\" if alarm enabled, \"D\" if disabled)\n"
-                     "\t\"ESP: ea E\" enable alarm (if E = \"E\", enable alarm, if E = \"D\", disable)\n"
-                     "\t\"ESP: ta\" toggle alarm On/Off\n"
-                     "\t\"ESP: ssd MMMM\" set Sunrise duration in minutes (0-1440)\n"
-                     "\t\"ESP: gsd\" get Sunrise duration (MMMM)\n"
-                     "\t\"ESP: sff FF\" set fan PWM frequency (used only for DOUT PWM)\n"
-                     "\t\"ESP: sfs NN\" set fan PWM steps number (steps per PWM period) (used only for DOUT PWM)\n"));
+    Serial.println(
+        F("SAD lamp controller.\n"
+          "Available commands:\n"
+          "\t\"ESP: st HH:MM:SS DD/MM/YYYY\" - set current time\n"
+          "\t\"ESP: gt\" - get current time (HH:MM:SS DD/MM/YYYY)\n"
+          "\t\"ESP: sa HH:MM WW\" - set alarm on specified time (WW - day of week mask)\n"
+          "\t\"ESP: ga\" - get alarm (E HH:MM WW, E = \"E\" if alarm enabled, \"D\" if disabled)\n"
+          "\t\"ESP: ea E\" enable alarm (if E = \"E\", enable alarm, if E = \"D\", disable)\n"
+          "\t\"ESP: ta\" toggle alarm On/Off\n"
+          "\t\"ESP: ssd MMMM\" set Sunrise duration in minutes (0-1440)\n"
+          "\t\"ESP: gsd\" get Sunrise duration (MMMM)\n"
+          "\t\"ESP: sb BBBB\" set brightness (0-1023). Not allowed in manual lamp control mode\n"
+          "\t\"ESP: gb\" get current brightness (M BBBB, M = \"M\" if lamp in manual mode, \"A\" - in automatic mode)\n"
+          "\t\"ESP: sff FF\" set fan PWM frequency (used only for DOUT PWM)\n"
+          "\t\"ESP: sfs NN\" set fan PWM steps number (steps per PWM period) (used only for DOUT PWM)\n"));
 }

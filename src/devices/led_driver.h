@@ -19,9 +19,12 @@ public:
     void   set_sunrise_duration_str(const String& str);
     String get_sunrise_duration_str() const;
 
+    void   set_brightness(uint16_t level);  // level is in range [0..1023]
+    void   set_brightness_str(const String& str);
+    String get_brightness_str() const;
+
     void start_sunrise();
     void stop_sunrise();
-    void set_brightness(uint16_t level);  // level is in range [0..1024]
 
 private:
     void    set_sunrise_duration(uint16_t duration_m);
@@ -35,6 +38,7 @@ private:
     bool           is_sunrise_in_progress_;
     uint32_t       sunrise_start_time_;
     uint32_t       sunrise_duration_sec_;
+    uint16_t       current_brightness_;
 };
 
 #endif  // LED_DRIVER_H_

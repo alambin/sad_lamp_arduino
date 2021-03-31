@@ -94,6 +94,12 @@ SerialCommandReader::read_command()
     else if (command_str == "gsd") {
         type = Command::CommandType::GET_SUNRISE_DURATION;
     }
+    else if (command_str == "sb") {
+        type = Command::CommandType::SET_BRIGHTNESS;
+    }
+    else if (command_str == "gb") {
+        type = Command::CommandType::GET_BRIGHTNESS;
+    }
     else if (command_str == "sff") {
         type = Command::CommandType::SET_FAN_PWM_FREQUENCY;
     }
