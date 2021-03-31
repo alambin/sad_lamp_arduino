@@ -82,11 +82,11 @@ void
 LedDriver::setup()
 {
     pwm_.setup();
-    uint8_t duration_min{(uint8_t)eeprom_read_byte(&sunraise_duration_minutes_address)};
+    uint16_t duration_min{(uint16_t)eeprom_read_word(&sunraise_duration_minutes_address)};
     set_sunrise_duration(duration_min);
 
     Serial.print(F("Read from EEPROM: Sunrise duration "));
-    Serial.print((int)duration_min);
+    Serial.print(duration_min);
     Serial.println(F(" minutes"));
 }
 
@@ -121,13 +121,19 @@ LedDriver::set_sunrise_duration_str(const String& str)
     Serial.print(F("Received command 'Set Sunrise duration' "));
     Serial.println(str);
 
-    uint8_t duration_min{(uint8_t)str.substring(0, 2).toInt()};
-    eeprom_write_byte(&sunraise_duration_minutes_address, duration_min);
+    uint16_t duration_min{(uint16_t)str.substring(0, 4).toInt()};
+    eeprom_write_word(&sunraise_duration_minutes_address, duration_min);
     set_sunrise_duration(duration_min);
 
     Serial.print(F("Stored to EEPROM Sunrise duration "));
-    Serial.print((int)duration_min);
+    Serial.print(duration_min);
     Serial.println(F(" minutes"));
+}
+
+String
+LedDriver::get_sunrise_duration_str() const
+{
+    return String(sunrise_duration_sec_ / 60);
 }
 
 void
@@ -151,9 +157,9 @@ LedDriver::set_brightness(uint16_t level)
 }
 
 void
-LedDriver::set_sunrise_duration(uint32_t duration_m)
+LedDriver::set_sunrise_duration(uint16_t duration_m)
 {
-    sunrise_duration_sec_ = duration_m * 60;
+    sunrise_duration_sec_ = (uint32_t)duration_m * 60;
 
     // Adjust updating period
     adjusted_updating_period_ms_ = min(initial_updating_period_ms_, (sunrise_duration_sec_ * 1000) / num_of_levels);

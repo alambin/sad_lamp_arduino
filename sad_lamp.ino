@@ -1,53 +1,21 @@
-/*
-// Note! You should define "throw" keyword as nothing.
+
+// Note! If you include <ArduinoSTL.h>, you should define "throw" keyword as nothing.
 // Otherwise ArduinoSTL will generate tons of warnings that this keyword is deprecated
-//#define COUT_OUTPUT
-#ifdef COUT_OUTPUT
-#define throw(...)
-#include <ArduinoSTL.h>
-#endif
+// #define throw(...)
+// #include <ArduinoSTL.h>
 
-#include "lamp_controller.h"
-
-#include src/"devices/timer.h"
-#include "src/devices/doutpwm.h"
-#include "src/devices/fan.h"
-#include "src/devices/led.h"
-#include "src/devices/led_driver.h"
-#include "src/devices/potentiometer.h"
-#include "src/devices/serial_command_reader.h"
+#include "src/lamp_controller.h"
 
 namespace
 {
 LampController lamp_controller;
-
-Led led(LED_BUILTIN);
-// FanPWM        fan(3, Pwm::PWMSpeed::HZ_31372);
-// DoutPwm       dout_pwm(FAN1_PIN, FAN2_PIN);
-// Potentiometer potentiometer(POTENTIOMETER_PIN, 10);
 }  // namespace
 
 void
 setup()
 {
-    SerialCommandReader::instance();  // Init serial port by creating instance of  SerialCommandReader
     lamp_controller.setup();
 }
-
-// Blink 5 times signalling end of loop
-void
-blink_end_of_loop()
-{
-    constexpr char num_of_blinks{5};
-    for (char i = 0; i < num_of_blinks; ++i) {
-        led.turn_on(true);
-        delay(500);
-        led.turn_on(false);
-        delay(500);
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void
 print_performance(uint32_t delta)
@@ -77,7 +45,6 @@ print_performance(uint32_t delta)
     }
 }
 
-// the loop function runs over and over again forever
 void
 loop()
 {
@@ -101,7 +68,7 @@ loop()
     // V 4. Try to find high speed optocoupler so that you can replace them on my boards. Need 10 Mbit/s speed and
     //    Vcc (output voltage) up to 15V.
     //    Do NOT look at https:
-    //aliexpress.ru/item/32914498721.html?spm=a2g0o.productlist.0.0.4b8a735dX01mxU&algo_pvid=db4f0cfc-d144-4e65-af56-f3bb5a12ab00&algo_expid=db4f0cfc-d144-4e65-af56-f3bb5a12ab00-4&btsid=0b8b034116094162831996129ef754&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_
+    // aliexpress.ru/item/32914498721.html?spm=a2g0o.productlist.0.0.4b8a735dX01mxU&algo_pvid=db4f0cfc-d144-4e65-af56-f3bb5a12ab00&algo_expid=db4f0cfc-d144-4e65-af56-f3bb5a12ab00-4&btsid=0b8b034116094162831996129ef754&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_
     //    It support only inputs on 12/24V. Output is always 5V (maximum allowed on 6N137 is 7V).
     //    Results:
     //    1) 5 Mb, 0-20V: https://datasheet.octopart.com/HCPL-2201-Avago-datasheet-8212218.pdf
@@ -115,15 +82,16 @@ loop()
     //    2) Contact on Alibaba to order/produce following items
     //       https://www.alibaba.com/product-detail/Citizen-COB-CLU048-Series-LED-MODULE_62135453445.html
     //       https:  //
-    //russian.alibaba.com/product-detail/photographic-lighting-citizen-same-size-clu048-xl-28-28-24-200w-300w-cri95-5600k-us-bridgelux-3-years-ce-rohs-lm-80-62555834989.html?spm=a2700.8699010.normalList.2.5cab32e0seliz3&s=p
+    // russian.alibaba.com/product-detail/photographic-lighting-citizen-same-size-clu048-xl-28-28-24-200w-300w-cri95-5600k-us-bridgelux-3-years-ce-rohs-lm-80-62555834989.html?spm=a2700.8699010.normalList.2.5cab32e0seliz3&s=p
     //       https:  //
-    //russian.alibaba.com/product-detail/led-cob-clu048-1818-for-150-200w-led-high-bay-or-led-flood-light-made-in-japan-28x28mm-ra-70-80-90-cct-3000-4000-5000-5700k-62361111010.html?spm=a2700.8699010.normalList.56.5cab32e0seliz3
+    // russian.alibaba.com/product-detail/led-cob-clu048-1818-for-150-200w-led-high-bay-or-led-flood-light-made-in-japan-28x28mm-ra-70-80-90-cct-3000-4000-5000-5700k-62361111010.html?spm=a2700.8699010.normalList.56.5cab32e0seliz3
 }
-*/
 
+
+/*
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Test of potenciometer readings and filtering
-/*
+
 #include "src/devices/Potentiometer.h"
 Potentiometer potentiometer(A0, 10);
 
@@ -164,6 +132,7 @@ loop()
 }
 */
 
+/*
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Test functions
 
@@ -175,7 +144,6 @@ Led led(LED_BUILTIN);
 // Potentiometer potentiometer(A0, 10);
 // LedDriver     led_driver(3, Pwm::PWMSpeed::HZ_490);
 
-/*
 void
 PWMFanTest()
 {
@@ -285,7 +253,6 @@ test_dout_30hz_pwm_duty_cycles()
         break;
     }
 }
-*/
 
 void
 blink_n_times(int N)
@@ -361,7 +328,7 @@ blink_n_times(int N)
 
 // New n-channel key module. Small fan. 32 kHz. Doesnt start. No power on fan. Idk why
 // Same but 4 kHz - fan starts, but on high duty and with noise. Even at max PWM it gives max 9.7V to fan
-/*
+
 // Test PWM by changing duty cycle in steps "numOfGrades" times from 0% to 100%
 void
 pwm_up_with_blinking(char numOfGrades)
@@ -418,9 +385,23 @@ loop()
         swSerial.write(Serial.read());
     }
 }
-*/
 
-///////////////// Serial echo
+
+//////////////////////////////////////// Serial echo to test ESP ////////////////////////////////////////
+
+#include "src/devices/led.h"
+Led led(LED_BUILTIN);
+
+void
+blink_n_times(int N)
+{
+    for (char i = 0; i < N; ++i) {
+        led.turn_on(true);
+        delay(500);
+        led.turn_on(false);
+        delay(500);
+    }
+}
 
 void
 setup()
@@ -470,3 +451,4 @@ loop()
 
     blink_n_times(1);
 }
+*/

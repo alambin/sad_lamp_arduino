@@ -2,21 +2,47 @@
 
 #include <HardwareSerial.h>
 
-namespace {
-constexpr char esp_prefix[] PROGMEM = "ESP: ";
-}  // namespace
-
-SerialCommandReader&
-SerialCommandReader::instance()
+namespace
 {
-    static SerialCommandReader instance;
-    return instance;
-}
+const char esp_prefix[] PROGMEM = "ESP:";
+}  // namespace
 
 SerialCommandReader::SerialCommandReader()
   : is_input_data_ready_{false}
 {
+}
+
+void
+SerialCommandReader::setup()
+{
     Serial.begin(9600);
+}
+
+void
+SerialCommandReader::loop()
+{
+    while (Serial.available() > 0) {
+        char ch = Serial.read();
+        if (ch == '\r') {
+            // Ignore this line ending. If ESP doesn't use println() for communication with Arduino,
+            // it should never happen.
+            continue;
+        }
+        if (ch != '\n') {
+            buffer_[current_buf_position_++] = ch;
+            continue;
+        }
+
+        buffer_[current_buf_position_++] = 0;
+        current_buf_position_            = 0;
+
+        if (strncmp_P(buffer_, esp_prefix, 4)) {
+            continue;
+        }
+
+        input_data_          = &buffer_[5];
+        is_input_data_ready_ = true;
+    }
 }
 
 bool
@@ -47,11 +73,17 @@ SerialCommandReader::read_command()
     if (command_str == "st") {
         type = Command::CommandType::SET_TIME;
     }
-    if (command_str == "gt") {
+    else if (command_str == "gt") {
         type = Command::CommandType::GET_TIME;
     }
     else if (command_str == "sa") {
         type = Command::CommandType::SET_ALARM;
+    }
+    else if (command_str == "ga") {
+        type = Command::CommandType::GET_ALARM;
+    }
+    else if (command_str == "ea") {
+        type = Command::CommandType::ENABLE_ALARM;
     }
     else if (command_str == "ta") {
         type = Command::CommandType::TOGGLE_ALARM;
@@ -59,11 +91,17 @@ SerialCommandReader::read_command()
     else if (command_str == "ssd") {
         type = Command::CommandType::SET_SUNRISE_DURATION;
     }
+    else if (command_str == "gsd") {
+        type = Command::CommandType::GET_SUNRISE_DURATION;
+    }
     else if (command_str == "sff") {
         type = Command::CommandType::SET_FAN_PWM_FREQUENCY;
     }
     else if (command_str == "sfs") {
         type = Command::CommandType::SET_FAN_PWM_STEPS_NUMBER;
+    }
+    else if (command_str == "connect") {
+        type = Command::CommandType::CONNECT;
     }
     else {
         return {Command::CommandType::INVALID, input_string};
@@ -71,27 +109,3 @@ SerialCommandReader::read_command()
 
     return {type, arguments};
 }
-
-// TODO: implement it as NOT singleton. as it is done for ESP.
-void
-SerialCommandReader::on_serial_event()
-{
-    if (Serial.available()) {
-        auto line          = Serial.readStringUntil('\n');
-
-        // TODO: test it!
-        if (!line.startsWith(FPSTR(esp_prefix))) {
-            return;
-        }
-
-        input_data_          = line.substring(FPSTR(esp_prefix).length() + 1);
-        is_input_data_ready_ = true;
-    }
-}
-
-// Arduino's predefined function-callback on receiving serial data
-// void
-// serialEvent()
-// {
-//     SerialCommandReader::instance().on_serial_event();
-// }

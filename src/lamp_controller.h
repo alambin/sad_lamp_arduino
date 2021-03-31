@@ -8,6 +8,7 @@
 #include "devices/fan.h"
 #include "devices/led_driver.h"
 #include "devices/potentiometer.h"
+#include "devices/serial_command_reader.h"
 #include "devices/timer.h"
 
 class LampController
@@ -29,9 +30,10 @@ private:
 
     void print_usage() const;
 
-    Timer         timer_;
-    LedDriver     led_driver_;
-    Potentiometer potentiometer_;
+    Timer               timer_;
+    LedDriver           led_driver_;
+    Potentiometer       potentiometer_;
+    SerialCommandReader serial_command_reader_;
     // FanPWM              fan_;
     // DoutPwm             dout_pwm_;
 

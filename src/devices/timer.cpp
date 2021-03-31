@@ -147,6 +147,41 @@ Timer::set_alarm_str(const String& str)
     Serial.println((int)alarm_.dow, HEX);
 }
 
+String
+Timer::get_alarm_str() const
+{
+    // E HH:MM WW
+    char str[11];
+
+    str[0] = (is_alarm_enabled_) ? 'E' : 'D';
+    str[1] = ' ';
+
+    // A terminating null character is automatically appended by snprintf
+    snprintf_P(str + 2, 9, PSTR("%02d:%02d %02x"), alarm_.hour, alarm_.minute, (uint8_t)alarm_.dow);
+    return String(str);
+}
+
+bool
+Timer::enable_alarm_str(const String& str)
+{
+    Serial.print(F("Received command 'Enable alarm' "));
+    Serial.println(str);
+
+    if (str[0] == 'E') {
+        if (!is_alarm_enabled_) {
+            toggle_alarm();
+        }
+        return true;
+    }
+    else if (str[0] == 'D') {
+        if (is_alarm_enabled_) {
+            toggle_alarm();
+        }
+        return true;
+    }
+    return false;
+}
+
 void
 Timer::toggle_alarm()
 {
@@ -233,15 +268,17 @@ Timer::str_to_alarm(const String& str) const
 String
 Timer::datetime_to_str(const tmElements_t& datetime) const
 {
+    // H:MM:SS DD/MM/YYYY
     char str[20];
-    snprintf(str,
-             20,
-             "%02d:%02d:%02d %02d/%02d/%04d",
-             datetime.Hour,
-             datetime.Minute,
-             datetime.Second,
-             datetime.Day,
-             datetime.Month,
-             tmYearToCalendar(datetime.Year));
+    // A terminating null character is automatically appended by snprintf
+    snprintf_P(str,
+               20,
+               PSTR("%02d:%02d:%02d %02d/%02d/%04d"),
+               datetime.Hour,
+               datetime.Minute,
+               datetime.Second,
+               datetime.Day,
+               datetime.Month,
+               tmYearToCalendar(datetime.Year));
     return String(str);
 }

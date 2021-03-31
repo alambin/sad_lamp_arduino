@@ -16,14 +16,15 @@ public:
     void setup() override;
     void run_sunrise();
 
-    void set_sunrise_duration_str(const String& str);
+    void   set_sunrise_duration_str(const String& str);
+    String get_sunrise_duration_str() const;
 
     void start_sunrise();
     void stop_sunrise();
     void set_brightness(uint16_t level);  // level is in range [0..1024]
 
 private:
-    void    set_sunrise_duration(uint32_t duration_m);
+    void    set_sunrise_duration(uint16_t duration_m);
     uint8_t map_sunrise_time_to_level(uint32_t delta_time_ms);
     uint8_t map_manual_control_to_level(uint16_t manual_level);
 

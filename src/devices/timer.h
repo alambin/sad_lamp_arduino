@@ -32,9 +32,11 @@ public:
     void setup() override;
     void check_alarm();
 
-    void set_alarm_str(const String& str);
-    void register_alarm_handler(AlarmHandler* alarm_handler);
-    void toggle_alarm();
+    void   set_alarm_str(const String& str);
+    String get_alarm_str() const;
+    bool   enable_alarm_str(const String& str);
+    void   register_alarm_handler(AlarmHandler* alarm_handler);
+    void   toggle_alarm();
 
     void   set_time_str(const String& str) const;
     String get_time_str() const;
