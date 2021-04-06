@@ -5,6 +5,7 @@
 namespace
 {
 const char esp_prefix[] PROGMEM = "ESP:";
+const char reset_esp[] PROGMEM  = "RESETESP";
 }  // namespace
 
 SerialCommandReader::SerialCommandReader()
@@ -33,10 +34,12 @@ SerialCommandReader::loop()
             continue;
         }
 
-        buffer_[current_buf_position_++] = 0;
-        current_buf_position_            = 0;
+        buffer_[current_buf_position_] = 0;
+        auto command_length            = current_buf_position_;
+        current_buf_position_          = 0;
 
-        if (strncmp_P(buffer_, esp_prefix, 4)) {
+        if ((command_length < 4) || strncmp_P(buffer_, esp_prefix, 4)) {
+            // Ignore all short lines and lines without prefix
             continue;
         }
 

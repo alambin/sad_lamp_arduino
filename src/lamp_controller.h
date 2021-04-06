@@ -25,6 +25,7 @@ private:
     void process_commands_from_serial();
 
     void handle_manual_mode();
+    void handle_esp_reset_request();
     void enable_manual_mode();
     void disable_manual_mode();
 
@@ -39,6 +40,8 @@ private:
 
     bool     is_manual_mode_;
     uint16_t last_potentiometer_val_;
+
+    uint32_t last_mode_switch_time_;  // Time when last time we switched from manual to auto mode or vice versa
 };
 
 #endif  // LAMP_CONTROLLER_H_

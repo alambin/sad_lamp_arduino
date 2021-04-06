@@ -12,9 +12,17 @@ const uint8_t kpotentiometer_pin = A0;
 const uint8_t kfan1_pin          = 2;
 const uint8_t kfan2_pin          = 4;
 
+// Manual mode is when potentiometer value is higher than 100. If its value is lower, it is treated as automatic mode.
+// Such features as sunrise, manual brightness controll via WebUI (ESP) are allowed only in automatic mode.
 const uint16_t kmanual_mode_level      = 100;
 const uint16_t kmanual_mode_hysteresis = 0.1 * kmanual_mode_level;
 const uint16_t kmanual_mode_threshold  = 4;
+
+// To call ESP request user should change from manual to auto mode <kreset_esp_num_of_steps> times with being in each
+// step from <kreset_esp_step_timeout_min> to <kreset_esp_step_timeout_max> milliseconds.
+const uint32_t kreset_esp_step_timeout_min = 2000;
+const uint32_t kreset_esp_step_timeout_max = 4000;
+const uint8_t  kreset_esp_num_of_steps     = 5;
 
 // const uint16_t knum_of_pwm_steps      = 10;
 // const uint16_t kpwm_frequency         = 3;
@@ -32,6 +40,7 @@ constexpr char esp_get_brightness_ack[] PROGMEM       = "TOESP: gb ACK ";
 constexpr char esp_set_pwm_frequency_ack[] PROGMEM    = "TOESP: sff ACK\n";
 constexpr char esp_set_pwm_steps_number_ack[] PROGMEM = "TOESP: sfs ACK\n";
 constexpr char esp_connect_ack[] PROGMEM              = "TOESP: connect ACK\n";
+constexpr char esp_reset_cmd[] PROGMEM                = "TOESP: RESETESP\n";
 }  // namespace
 
 LampController::LampController()
@@ -41,6 +50,7 @@ LampController::LampController()
   // , dout_pwm_(kfan1_pin, kfan2_pin)
   , is_manual_mode_{false}
   , last_potentiometer_val_{0XFFFF}
+  , last_mode_switch_time_{0}
 {
 }
 
@@ -206,11 +216,31 @@ LampController::handle_manual_mode()
 }
 
 void
+LampController::handle_esp_reset_request()
+{
+    static uint8_t correct_steps_counter{0};
+    auto           delta   = millis() - last_mode_switch_time_;
+    last_mode_switch_time_ = millis();
+
+    if ((kreset_esp_step_timeout_max >= delta) && (delta >= kreset_esp_step_timeout_min)) {
+        if (++correct_steps_counter >= kreset_esp_num_of_steps) {
+            Serial.println(FPSTR(esp_reset_cmd));
+            correct_steps_counter = 0;
+        }
+    }
+    else {
+        correct_steps_counter = 0;
+    }
+}
+
+void
 LampController::enable_manual_mode()
 {
     is_manual_mode_ = true;
     led_driver_.stop_sunrise();  // Stop sunrise. Just in case it was in progress
     Serial.println(F("Manual mode enabled"));
+
+    handle_esp_reset_request();
 }
 
 void
@@ -218,11 +248,9 @@ LampController::disable_manual_mode()
 {
     is_manual_mode_ = false;
     Serial.println(F("Manual mode disabled"));
-}
 
-// TODO: add command to set brightness if mode is automated ????
-// TODO: should Arduino notify ESP when entering Auto mode (so it will be able to set brightness from WebUI)?
-//       Isn't it overkill?
+    handle_esp_reset_request();
+}
 
 void
 LampController::print_usage() const

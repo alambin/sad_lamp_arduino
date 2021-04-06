@@ -25,6 +25,7 @@ public:
             SET_FAN_PWM_FREQUENCY,
             SET_FAN_PWM_STEPS_NUMBER,
             CONNECT,
+            RESET_ESP,
             INVALID = 255
         } type;
         String arguments;
