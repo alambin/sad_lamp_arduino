@@ -54,37 +54,6 @@ loop()
     // print_performance(delta);
 
     // test_dout_30hz_pwm_duty_cycles();
-
-    // TODO:
-    // V 1. Implement FAN PWM using DOUT. For now keep 10 steps and 3 Hz.
-    // V 2. Make num_of_pwm_steps and pwm_frequency configurable via USB. May be we will need to use commands longer
-    //    than 1 char (strings would be very flexible). Store these variables in EEPROM. So, user later can configure
-    //    it without rebuilding.
-    // 3. Buy 1-way mosfet module without optocoupler. Try to use and measure noise. If on 32 kHz it will not make
-    //    much noise, buy 4-way key. Try to find WITH PROTECTIVE DIODES.
-    //    Status: ordered, waiting for arrival. Actually ordered module is shit, because to fully oper transistor you
-    //    need 10V, but Arduino gives only 5V. You can try to replace default mosfet with, ex. IRL3705N
-    //    Result: NO NOISE on 32 kHz, as expected! Not sure if I can find 4-way no-isolated board.
-    // V 4. Try to find high speed optocoupler so that you can replace them on my boards. Need 10 Mbit/s speed and
-    //    Vcc (output voltage) up to 15V.
-    //    Do NOT look at https:
-    // aliexpress.ru/item/32914498721.html?spm=a2g0o.productlist.0.0.4b8a735dX01mxU&algo_pvid=db4f0cfc-d144-4e65-af56-f3bb5a12ab00&algo_expid=db4f0cfc-d144-4e65-af56-f3bb5a12ab00-4&btsid=0b8b034116094162831996129ef754&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_
-    //    It support only inputs on 12/24V. Output is always 5V (maximum allowed on 6N137 is 7V).
-    //    Results:
-    //    1) 5 Mb, 0-20V: https://datasheet.octopart.com/HCPL-2201-Avago-datasheet-8212218.pdf
-    //       BUT it will have inverted output
-    // V 5. Buy circle resistor (Potentiometer). How to mount it to the metal plate? Prefere those one, which has
-    //    fixed "0" position. Should you connect it to Arduino or somehow to LED driver?
-    // 6. Try to find replacement LED (citizen? cree?) for 2.2 A, the same voltage, but 5500-5700K.
-    //    Refer to LED holder description to get supported LEDs
-    //    Status:
-    //    1) Deal with Neon, ordered 2x 5000K LEDs
-    //    2) Contact on Alibaba to order/produce following items
-    //       https://www.alibaba.com/product-detail/Citizen-COB-CLU048-Series-LED-MODULE_62135453445.html
-    //       https:  //
-    // russian.alibaba.com/product-detail/photographic-lighting-citizen-same-size-clu048-xl-28-28-24-200w-300w-cri95-5600k-us-bridgelux-3-years-ce-rohs-lm-80-62555834989.html?spm=a2700.8699010.normalList.2.5cab32e0seliz3&s=p
-    //       https:  //
-    // russian.alibaba.com/product-detail/led-cob-clu048-1818-for-150-200w-led-high-bay-or-led-flood-light-made-in-japan-28x28mm-ra-70-80-90-cct-3000-4000-5000-5700k-62361111010.html?spm=a2700.8699010.normalList.56.5cab32e0seliz3
 }
 
 

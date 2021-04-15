@@ -80,12 +80,6 @@ LampController::setup()
 void
 LampController::loop()
 {
-    // TODO: BUG. By some reason data read from EEPROM with errors. Ex. toggle-alarm frag or alarm time.
-    //       RTC data seems not corrupted.
-    //       Once I entered data at evening and checked next morning - everything is OK. But day before data was
-    //       corrupted often during my work with Arduino. May be reason is corruption due to mess with addresses? Ex.
-    //       overwriting of one data by another.
-
     potentiometer_.loop();
     handle_manual_mode();
 
@@ -224,7 +218,7 @@ LampController::handle_esp_reset_request()
 
     if ((kreset_esp_step_timeout_max >= delta) && (delta >= kreset_esp_step_timeout_min)) {
         if (++correct_steps_counter >= kreset_esp_num_of_steps) {
-            Serial.println(FPSTR(esp_reset_cmd));
+            Serial.print(FPSTR(esp_reset_cmd));
             correct_steps_counter = 0;
         }
     }
