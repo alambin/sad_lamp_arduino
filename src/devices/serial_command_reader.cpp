@@ -1,29 +1,28 @@
 #include "serial_command_reader.h"
 
-#include <HardwareSerial.h>
+#include <Arduino.h>
 
 namespace
 {
-const char esp_prefix[] PROGMEM = "ESP:";
-const char reset_esp[] PROGMEM  = "RESETESP";
+const char         esp_prefix[] PROGMEM = "ESP:";
+const char         reset_esp[] PROGMEM  = "RESETESP";
+constexpr uint32_t serial_speed         = 9600L;
 }  // namespace
-
-SerialCommandReader::SerialCommandReader()
-  : is_input_data_ready_{false}
-{
-}
 
 void
 SerialCommandReader::setup()
 {
-    Serial.begin(9600);
+    Serial.begin(serial_speed);
 }
 
 void
 SerialCommandReader::loop()
 {
+    handle_serial_inactivity();
+
     while (Serial.available() > 0) {
-        char ch = Serial.read();
+        last_received_symbol_time_ = millis();
+        char ch                    = Serial.read();
         if (ch == '\r') {
             // Ignore this line ending. If ESP doesn't use println() for communication with Arduino,
             // it should never happen.
@@ -43,21 +42,19 @@ SerialCommandReader::loop()
             continue;
         }
 
-        input_data_          = &buffer_[5];
-        is_input_data_ready_ = true;
+        input_data_ = &buffer_[5];
     }
 }
 
 bool
 SerialCommandReader::is_command_ready() const
 {
-    return is_input_data_ready_;
+    return (input_data_.length() != 0);
 }
 
 SerialCommandReader::Command
 SerialCommandReader::read_command()
 {
-    is_input_data_ready_ = false;
     String input_string{input_data_};
     input_data_ = "";
 
@@ -117,4 +114,13 @@ SerialCommandReader::read_command()
     }
 
     return {type, arguments};
+}
+
+void
+SerialCommandReader::handle_serial_inactivity()
+{
+    constexpr uint32_t serial_inactivity_timeout = 1000;
+    if ((current_buf_position_ != 0) && ((millis() - last_received_symbol_time_) >= serial_inactivity_timeout)) {
+        current_buf_position_ = 0;
+    }
 }

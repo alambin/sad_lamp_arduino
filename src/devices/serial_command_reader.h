@@ -31,7 +31,7 @@ public:
         String arguments;
     };
 
-    SerialCommandReader();
+    SerialCommandReader() = default;
     void setup() override;
     void loop();
 
@@ -39,12 +39,14 @@ public:
     Command read_command();
 
 private:
+    void handle_serial_inactivity();
+
     static constexpr uint8_t buffer_size_{64};
     char                     buffer_[buffer_size_];
     uint16_t                 current_buf_position_{0};
 
-    String input_data_;
-    bool   is_input_data_ready_;
+    String   input_data_;
+    uint32_t last_received_symbol_time_{0};
 };
 
 #endif  // SERIAL_PORT_H_
