@@ -3,8 +3,8 @@
 
 #include "IComponent.h"
 
-#include <stdint.h>
 #include <WString.h>
+#include <stdint.h>
 
 // Implements PWM using digital output pin. The same PWM is generated on both - pin1 and pin2
 // PWM is generated for frequency "frequency". Each period of PWM is split in "num_of_steps" steps.
@@ -16,22 +16,22 @@ class DoutPwm : public IComponent
 {
 public:
     DoutPwm(uint8_t pin1, uint8_t pin2);
-    void setup() override;
-    void loop();
+    void Setup() override;
+    void Loop();
 
-    // Configure PWM. New parameters will be applied only after next PWM start (set_duty())
-    void set_pwm_frequency(uint16_t frequency);
-    void set_pwm_frequency(const String& str);
-    void set_pwm_steps_number(uint8_t num_of_steps);
-    void set_pwm_steps_number(const String& str);
+    // Configure PWM. New parameters will be applied only after next PWM start (SetDuty())
+    void SetPwmFrequency(uint16_t frequency);
+    void SetPwmFrequency(const String& str);
+    void SetPwmStepsNumber(uint8_t num_of_steps);
+    void SetPwmStepsNumber(const String& str);
 
     // Starts PWM.
-    // Should be called AFTER PWM is configured (set_pwm_frequency() and set_pwm_steps_number() are called)
+    // Should be called AFTER PWM is configured (SetPwmFrequency() and SetPwmStepsNumber() are called)
     // duty is in range [0, num_of_steps)
-    void set_duty(uint8_t duty);
+    void SetDuty(uint8_t duty);
 
     // Stops PWM and set output in specified value.
-    void set_output(bool is_high);
+    void SetOutput(bool is_high);
 
 private:
     const uint8_t pin1_;

@@ -19,9 +19,9 @@ Pwm::Pwm(uint8_t pin, Pwm::PWMSpeed pwm_speed, bool double_pwm)
 }
 
 void
-Pwm::setup()
+Pwm::Setup()
 {
-    auto res = get_speed_mask();
+    auto res = GetSpeedMask();
     if (res.mask == 0) {
         Serial.print(F("ERROR: not supported pin for PWM: "));
         Serial.println(pin_);
@@ -55,13 +55,13 @@ Pwm::setup()
 }
 
 void
-Pwm::set_duty(uint8_t duty)
+Pwm::SetDuty(uint8_t duty)
 {
     analogWrite(pin_, duty);
 }
 
 Pwm::GetSpeedMaskResult
-Pwm::get_speed_mask() const
+Pwm::GetSpeedMask() const
 {
     uint8_t timer_number{0};
     switch (pin_) {

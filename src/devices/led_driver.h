@@ -8,37 +8,38 @@
 
 #include "pwm.h"
 
-// Controlls current driver for powerful LED
+// Controls current driver for powerful LED
 class LedDriver : public IComponent
 {
 public:
     LedDriver(uint8_t pin, Pwm::PWMSpeed pwm_speed, uint32_t updating_period_ms = 1000);
-    void setup() override;
-    void run_sunrise();
+    void Setup() override;
+    void RunSunrise();
 
-    void   set_sunrise_duration_str(const String& str);
-    String get_sunrise_duration_str() const;
+    void   SetSunriseDurationStr(const String& str);
+    String GetSunriseDurationStr() const;
 
-    void   set_brightness(uint16_t level);  // level is in range [0..1023]
-    void   set_brightness_str(const String& str);
-    String get_brightness_str() const;
+    void   SetBrightness(uint16_t level);  // level is in range [0..1023]
+    void   SetBrightnessStr(const String& str);
+    String GetBrightnessStr() const;
+    void   SetThermalFactor(float thermal_factor);
 
-    void start_sunrise();
-    void stop_sunrise();
+    void StartSunrise();
+    void StopSunrise();
 
 private:
-    void    set_sunrise_duration(uint16_t duration_m);
-    uint8_t map_sunrise_time_to_level(uint32_t delta_time_ms);
-    uint8_t map_manual_control_to_level(uint16_t manual_level);
+    void    SetSunriseDuration(uint16_t duration_m);
+    uint8_t MapSunriseTimeToLevel(uint32_t delta_time_ms);
+    uint8_t MapManualControlToLevel(uint16_t manual_level);
 
     Pwm            pwm_;
     const uint32_t initial_updating_period_ms_;
     uint32_t       adjusted_updating_period_ms_;
-    uint32_t       last_updating_time_;
     bool           is_sunrise_in_progress_;
     uint32_t       sunrise_start_time_;
     uint32_t       sunrise_duration_sec_;
     uint16_t       current_brightness_;
+    float          thermal_factor_;
 };
 
 #endif  // LED_DRIVER_H_

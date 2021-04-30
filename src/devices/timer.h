@@ -13,7 +13,7 @@ public:
     class AlarmHandler
     {
     public:
-        virtual void on_alarm() = 0;
+        virtual void OnAlarm() = 0;
     };
 
     enum class DaysOfWeek : uint8_t
@@ -29,18 +29,18 @@ public:
     };
 
     explicit Timer(uint32_t reading_period_ms = 500);
-    void setup() override;
-    void check_alarm();
+    void Setup() override;
+    void CheckAlarm();
 
-    void   set_alarm_str(const String& str);
-    String get_alarm_str() const;
-    bool   enable_alarm_str(const String& str);
-    void   register_alarm_handler(AlarmHandler* alarm_handler);
-    void   toggle_alarm();
+    void   SetAlarmStr(const String& str);
+    String GetAlarmStr() const;
+    bool   EnableAlarmStr(const String& str);
+    void   RegisterAlarmHandler(AlarmHandler* alarm_handler);
+    void   ToggleAlarm();
 
-    void   set_time_str(const String& str) const;
-    String get_time_str() const;
-    time_t get_time() const;
+    void   SetTimeStr(const String& str) const;
+    String GetTimeStr() const;
+    time_t GetTime() const;
 
 private:
     struct AlarmData
@@ -55,12 +55,11 @@ private:
         DaysOfWeek dow;
     };
 
-    tmElements_t str_to_datetime(const String& str) const;
-    AlarmData    str_to_alarm(const String& str) const;
-    String       datetime_to_str(const tmElements_t& datetime) const;
+    tmElements_t StrToDatetime(const String& str) const;
+    AlarmData    StrToAlarm(const String& str) const;
+    String       DatetimeToStr(const tmElements_t& datetime) const;
 
     const uint32_t reading_period_ms_;
-    uint32_t       last_reading_time_;
     AlarmData      alarm_;
     AlarmData      last_triggered_alarm_;
     bool           is_alarm_enabled_;

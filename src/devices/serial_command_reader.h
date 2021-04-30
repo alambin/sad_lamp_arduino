@@ -1,5 +1,5 @@
-#ifndef SERIAL_PORT_H_
-#define SERIAL_PORT_H_
+#ifndef SERIAL_COMMAND_READER_H_
+#define SERIAL_COMMAND_READER_H_
 
 #include "IComponent.h"
 
@@ -32,14 +32,14 @@ public:
     };
 
     SerialCommandReader() = default;
-    void setup() override;
-    void loop();
+    void Setup() override;
+    void Loop();
 
-    bool    is_command_ready() const;
-    Command read_command();
+    bool    IsCommandReady() const;
+    Command ReadCommand();
 
 private:
-    void handle_serial_inactivity();
+    void HandleSerialInactivity();
 
     static constexpr uint8_t buffer_size_{64};
     char                     buffer_[buffer_size_];
@@ -49,4 +49,4 @@ private:
     uint32_t last_received_symbol_time_{0};
 };
 
-#endif  // SERIAL_PORT_H_
+#endif  // SERIAL_COMMAND_READER_H_

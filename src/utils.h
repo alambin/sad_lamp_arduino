@@ -1,7 +1,6 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-
 #include <USBAPI.h>
 
 #define DEBUG_PRINTING

@@ -6,7 +6,7 @@ class IComponent
 public:
     virtual ~IComponent() = default;
 
-    virtual void setup() = 0;
+    virtual void Setup() = 0;
 };
 
 #endif  // ICOMPONENT_H_

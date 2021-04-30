@@ -27,8 +27,8 @@ public:
      * \param [in] double_pwm Should we double PWM speed (use fast pwm) or not (use phase correct pwm)
      */
     Pwm(uint8_t pin, PWMSpeed pwm_speed, bool double_pwm);
-    void setup() override;
-    void set_duty(uint8_t duty);
+    void Setup() override;
+    void SetDuty(uint8_t duty);
 
 private:
     struct GetSpeedMaskResult
@@ -37,7 +37,7 @@ private:
         uint8_t timer_number;
     };
 
-    GetSpeedMaskResult get_speed_mask() const;
+    GetSpeedMaskResult GetSpeedMask() const;
 
     const uint8_t  pin_;
     const PWMSpeed pwm_speed_;

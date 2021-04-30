@@ -9,8 +9,8 @@ class Led : public IComponent
 {
 public:
     Led(uint8_t pin);
-    void setup() override;
-    void turn_on(bool is_on);
+    void Setup() override;
+    void TurnOn(bool is_on);
 
 private:
     const uint8_t pin_;

@@ -10,7 +10,7 @@
 namespace
 {
 Timer::DaysOfWeek
-timelib_wday_to_dow(uint8_t c)
+TimelibWDayToDOW(uint8_t c)
 {
     switch (c) {
     case 1:
@@ -35,7 +35,6 @@ timelib_wday_to_dow(uint8_t c)
 
 Timer::Timer(uint32_t reading_period_ms = 500)
   : reading_period_ms_{reading_period_ms}
-  , last_reading_time_{0}
   , last_triggered_alarm_{0xFF, 0xFF, DaysOfWeek::kEveryDay}
   , is_alarm_enabled_{false}
   , alarm_handler_{nullptr}
@@ -43,7 +42,7 @@ Timer::Timer(uint32_t reading_period_ms = 500)
 }
 
 void
-Timer::setup()
+Timer::Setup()
 {
     alarm_.hour       = eeprom_read_byte(&alarm_hours_address);
     alarm_.minute     = eeprom_read_byte(&alarm_minutes_address);
@@ -64,75 +63,76 @@ Timer::setup()
 // specified day of week, either on specified day of month. But in case of SAD Lamp we want alarm to trigger every day.
 // The only option to do it is to check current hour and minute in Arduino's main loop.
 void
-Timer::check_alarm()
+Timer::CheckAlarm()
 {
     if ((!is_alarm_enabled_) || (alarm_handler_ == nullptr)) {
         return;
     }
 
     // Do not read from RTC on every iteration of loop(). Reading 2 times per second is quite safe.
-    auto now = millis();
-    if ((now - last_reading_time_) < reading_period_ms_) {
+    static uint32_t last_reading_time{0};
+    auto            now = millis();
+    if ((now - last_reading_time) < reading_period_ms_) {
         return;
     }
-    last_reading_time_ = now;
+    last_reading_time = now;
 
     tmElements_t datetime;
     if (!RTC.read(datetime)) {
         return;
     }
 
-    bool does_dow_match{(uint8_t)alarm_.dow & (uint8_t)timelib_wday_to_dow(datetime.Wday)};
+    bool does_dow_match{(uint8_t)alarm_.dow & (uint8_t)TimelibWDayToDOW(datetime.Wday)};
     if (does_dow_match && (datetime.Hour == alarm_.hour) && (datetime.Minute == alarm_.minute) &&
         (datetime.Second == 0)) {
         // Trigger alarm only once
         if (!(last_triggered_alarm_ == datetime)) {
             last_triggered_alarm_ = datetime;
-            alarm_handler_->on_alarm();
+            alarm_handler_->OnAlarm();
         }
     }
 }
 
 void
-Timer::register_alarm_handler(AlarmHandler* alarm_handler)
+Timer::RegisterAlarmHandler(AlarmHandler* alarm_handler)
 {
     alarm_handler_ = alarm_handler;
 }
 
 String
-Timer::get_time_str() const
+Timer::GetTimeStr() const
 {
     tmElements_t datetime;
     String       result;
     if (RTC.read(datetime)) {
-        result = datetime_to_str(datetime);
+        result = DatetimeToStr(datetime);
     }
     return result;
 }
 
 time_t
-Timer::get_time() const
+Timer::GetTime() const
 {
     return RTC.get();
 }
 
 void
-Timer::set_time_str(const String& str) const
+Timer::SetTimeStr(const String& str) const
 {
     Serial.print(F("Received command 'Set time' "));
     Serial.println(str);
 
-    auto datetime{str_to_datetime(str)};
+    auto datetime{StrToDatetime(str)};
     RTC.write(datetime);
 }
 
 void
-Timer::set_alarm_str(const String& str)
+Timer::SetAlarmStr(const String& str)
 {
     Serial.print(F("Received command 'Set alarm' "));
     Serial.println(str);
 
-    alarm_ = str_to_alarm(str);
+    alarm_ = StrToAlarm(str);
 
     // Store new alarm value in EEPROM
     eeprom_write_byte(&alarm_hours_address, alarm_.hour);
@@ -148,7 +148,7 @@ Timer::set_alarm_str(const String& str)
 }
 
 String
-Timer::get_alarm_str() const
+Timer::GetAlarmStr() const
 {
     // E HH:MM WW
     char str[11];
@@ -162,20 +162,20 @@ Timer::get_alarm_str() const
 }
 
 bool
-Timer::enable_alarm_str(const String& str)
+Timer::EnableAlarmStr(const String& str)
 {
     Serial.print(F("Received command 'Enable alarm' "));
     Serial.println(str);
 
     if (str[0] == 'E') {
         if (!is_alarm_enabled_) {
-            toggle_alarm();
+            ToggleAlarm();
         }
         return true;
     }
     else if (str[0] == 'D') {
         if (is_alarm_enabled_) {
-            toggle_alarm();
+            ToggleAlarm();
         }
         return true;
     }
@@ -183,7 +183,7 @@ Timer::enable_alarm_str(const String& str)
 }
 
 void
-Timer::toggle_alarm()
+Timer::ToggleAlarm()
 {
     if (is_alarm_enabled_) {
         is_alarm_enabled_ = false;
@@ -227,7 +227,7 @@ Timer::AlarmData::operator==(const tmElements_t& time_elements) const
 }
 
 tmElements_t
-Timer::str_to_datetime(const String& str) const
+Timer::StrToDatetime(const String& str) const
 {
     tmElements_t tm;
     // HH:MM:SS DD/MM/YYYY
@@ -248,7 +248,7 @@ Timer::str_to_datetime(const String& str) const
 }
 
 Timer::AlarmData
-Timer::str_to_alarm(const String& str) const
+Timer::StrToAlarm(const String& str) const
 {
     // HH:MM
     uint8_t h = str.substring(0, 2).toInt();
@@ -266,7 +266,7 @@ Timer::str_to_alarm(const String& str) const
 }
 
 String
-Timer::datetime_to_str(const tmElements_t& datetime) const
+Timer::DatetimeToStr(const tmElements_t& datetime) const
 {
     // H:MM:SS DD/MM/YYYY
     char str[20];

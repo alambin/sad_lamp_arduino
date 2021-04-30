@@ -10,15 +10,15 @@ constexpr uint32_t serial_speed         = 9600L;
 }  // namespace
 
 void
-SerialCommandReader::setup()
+SerialCommandReader::Setup()
 {
     Serial.begin(serial_speed);
 }
 
 void
-SerialCommandReader::loop()
+SerialCommandReader::Loop()
 {
-    handle_serial_inactivity();
+    HandleSerialInactivity();
 
     while (Serial.available() > 0) {
         last_received_symbol_time_ = millis();
@@ -47,13 +47,13 @@ SerialCommandReader::loop()
 }
 
 bool
-SerialCommandReader::is_command_ready() const
+SerialCommandReader::IsCommandReady() const
 {
     return (input_data_.length() != 0);
 }
 
 SerialCommandReader::Command
-SerialCommandReader::read_command()
+SerialCommandReader::ReadCommand()
 {
     String input_string{input_data_};
     input_data_ = "";
@@ -117,7 +117,7 @@ SerialCommandReader::read_command()
 }
 
 void
-SerialCommandReader::handle_serial_inactivity()
+SerialCommandReader::HandleSerialInactivity()
 {
     constexpr uint32_t serial_inactivity_timeout = 1000;
     if ((current_buf_position_ != 0) && ((millis() - last_received_symbol_time_) >= serial_inactivity_timeout)) {

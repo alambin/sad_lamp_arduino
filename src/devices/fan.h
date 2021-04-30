@@ -66,8 +66,8 @@ class FanPWM : public IComponent
 {
 public:
     FanPWM(uint8_t pin, Pwm::PWMSpeed pwm_speed);
-    void setup() override;
-    void set_speed(char current_speed);
+    void Setup() override;
+    void SetSpeed(uint8_t current_speed);  // 0 -> 0%; 255 -> 100%
 
 private:
     Pwm pwm_;

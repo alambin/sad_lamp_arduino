@@ -14,7 +14,7 @@ LampController lamp_controller;
 void
 setup()
 {
-    lamp_controller.setup();
+    lamp_controller.Setup();
 }
 
 void
@@ -49,13 +49,12 @@ void
 loop()
 {
     auto start_time = micros();
-    lamp_controller.loop();
+    lamp_controller.Loop();
     // auto delta = micros() - start_time;
     // print_performance(delta);
 
     // test_dout_30hz_pwm_duty_cycles();
 }
-
 
 /*
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -420,4 +419,58 @@ loop()
 
     blink_n_times(1);
 }
+*/
+
+///////////////////////////////////// Thermal sensor test /////////////////////////////////////
+
+/*
+#include <Streaming.h>
+#include "src/devices/thermosensors.hpp"
+
+ThermoSensors sensors(5);
+float temps[2] = {0, 0};
+
+void
+setup(void)
+{
+    Serial.begin(9600);
+    sensors.Setup();
+}
+
+void
+loop(void)
+{
+    sensors.Loop();
+
+    static uint32_t last_reading_time{0};
+    auto            now = millis();
+    if ((now - last_reading_time) < 1000) {
+        return;
+    }
+    last_reading_time = now;
+
+    sensors.GetTemperatures(temps);
+    if ((temps[0] != ThermoSensors::kInvalidTemperature) && (temps[1] != ThermoSensors::kInvalidTemperature)) {
+        Serial << F("T[0]: ") << temps[0] << F("; T[1]: ") << temps[1] << endl;
+    }
+    else {
+        Serial.println(F("Error: Could not read temperature data"));
+    }
+}
+
+// Temperatures after long use of Lamp on 100% (130 W per LED !)
+// Measurements are not so precise because they are made by DS1820 sensor, which I press to surface by finger
+// Driver:
+//         Sensor 2 showed 48.5. Plus 2-5 degrees because window was opened few minutes ago.
+//         Plus 2-3 degree because of sensor's not precision
+// Left side of Lamp case:
+//         Sensor 2 showed 46.5. Plus 2-5 degrees because window was opened few minutes ago.
+//         Plus 2-3 degree because of sensor's not precision
+// Place of installing Thermal sensors. Could not press on them at all:
+//         Sensor 2 showed 51.5. Plus 2-5 degrees because window was opened few minutes ago.
+//         Plus 2-3 degree because of sensor's not precision
+// Place near lenses:
+//         Sensor 2 showed 49. Plus 2-5 degrees because window was opened few minutes ago.
+//         Plus 2-3 degree because of sensor's not precision
+
 */

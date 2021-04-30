@@ -8,13 +8,13 @@ Led::Led(uint8_t pin)
 }
 
 void
-Led::setup()
+Led::Setup()
 {
     pinMode(pin_, OUTPUT);
 }
 
 void
-Led::turn_on(bool is_on)
+Led::TurnOn(bool is_on)
 {
     digitalWrite(pin_, is_on ? HIGH : LOW);
 }

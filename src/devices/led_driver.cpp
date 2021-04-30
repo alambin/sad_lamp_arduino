@@ -60,7 +60,7 @@ constexpr uint8_t num_of_levels{sizeof(brightness_levels) / sizeof(brightness_le
 //     0xEB, 0xEE, 0xF0, 0xF3, 0xF5, 0xF8, 0xFA, 0xFD, 0xFF};
 
 uint8_t
-invert_level(uint8_t level)
+InvertLevel(uint8_t level)
 {
     return 255 - level;
 }
@@ -71,21 +71,21 @@ LedDriver::LedDriver(uint8_t pin, Pwm::PWMSpeed pwm_speed, uint32_t updating_per
   : pwm_{pin, pwm_speed, false}
   , initial_updating_period_ms_{updating_period_ms}
   , adjusted_updating_period_ms_(updating_period_ms)
-  , last_updating_time_{0}
   , is_sunrise_in_progress_{false}
   , sunrise_start_time_{0}
   , sunrise_duration_sec_{0}
   , current_brightness_{0}
+  , thermal_factor_{1.0}
 {
 }
 
 void
-LedDriver::setup()
+LedDriver::Setup()
 {
-    pwm_.setup();
+    pwm_.Setup();
     uint16_t duration_min{(uint16_t)eeprom_read_word(&sunraise_duration_minutes_address)};
-    set_sunrise_duration(duration_min);
-    set_brightness(0);
+    SetSunriseDuration(duration_min);
+    SetBrightness(0);
 
     Serial.print(F("Read from EEPROM: Sunrise duration "));
     Serial.print(duration_min);
@@ -93,38 +93,39 @@ LedDriver::setup()
 }
 
 void
-LedDriver::run_sunrise()
+LedDriver::RunSunrise()
 {
     if (!is_sunrise_in_progress_) {
         return;
     }
 
     // Do not execute too often
-    auto now = millis();
-    if ((now - last_updating_time_) < adjusted_updating_period_ms_) {
+    static uint32_t last_updating_time{0};
+    auto            now = millis();
+    if ((now - last_updating_time) < adjusted_updating_period_ms_) {
         return;
     }
-    last_updating_time_ = now;
+    last_updating_time = now;
 
     uint32_t delta_time_ms{(now - sunrise_start_time_)};
     if (delta_time_ms >= (sunrise_duration_sec_ * 1000)) {
         // Sunrise is finished
-        set_brightness(1023);  // Keep lamp turned on
+        SetBrightness(1023);  // Keep lamp turned on
         return;
     }
 
-    pwm_.set_duty(map_sunrise_time_to_level(delta_time_ms));
+    pwm_.SetDuty(static_cast<uint16_t>(thermal_factor_ * MapSunriseTimeToLevel(delta_time_ms)));
 }
 
 void
-LedDriver::set_sunrise_duration_str(const String& str)
+LedDriver::SetSunriseDurationStr(const String& str)
 {
     Serial.print(F("Received command 'Set Sunrise duration' "));
     Serial.println(str);
 
     uint16_t duration_min{(uint16_t)str.substring(0, 4).toInt()};
     eeprom_write_word(&sunraise_duration_minutes_address, duration_min);
-    set_sunrise_duration(duration_min);
+    SetSunriseDuration(duration_min);
 
     Serial.print(F("Stored to EEPROM Sunrise duration "));
     Serial.print(duration_min);
@@ -132,7 +133,7 @@ LedDriver::set_sunrise_duration_str(const String& str)
 }
 
 String
-LedDriver::get_sunrise_duration_str() const
+LedDriver::GetSunriseDurationStr() const
 {
     // MMMM
     char str[5];
@@ -142,37 +143,40 @@ LedDriver::get_sunrise_duration_str() const
 }
 
 void
-LedDriver::start_sunrise()
+LedDriver::StartSunrise()
 {
     is_sunrise_in_progress_ = true;
     sunrise_start_time_     = millis();
 }
 
 void
-LedDriver::stop_sunrise()
+LedDriver::StopSunrise()
 {
     is_sunrise_in_progress_ = false;
 }
 
 void
-LedDriver::set_brightness(uint16_t level)
+LedDriver::SetBrightness(uint16_t level)
 {
-    stop_sunrise();  // Manual control of brightness cancells sunrise
-    pwm_.set_duty(map_manual_control_to_level(level));
+    StopSunrise();  // Manual control of brightness cancells sunrise
+    pwm_.SetDuty(static_cast<uint16_t>(thermal_factor_ * MapManualControlToLevel(level)));
+
+Serial.print(String(F("LAMBIN LedDriver::SetBrightness(): k = ")) + String(thermal_factor_, 2));
+Serial.println(String(F("; scaled brightness = ")) + String((thermal_factor_ * current_brightness_ / 1024.0 * 100), 2));
 }
 
 void
-LedDriver::set_brightness_str(const String& str)
+LedDriver::SetBrightnessStr(const String& str)
 {
     Serial.print(F("Received command 'Set brightness' "));
     Serial.println(str);
 
     uint16_t brightness{(uint16_t)str.substring(0, 4).toInt()};
-    set_brightness(brightness);
+    SetBrightness(brightness);
 }
 
 String
-LedDriver::get_brightness_str() const
+LedDriver::GetBrightnessStr() const
 {
     // BBBB
     char str[5];
@@ -182,7 +186,19 @@ LedDriver::get_brightness_str() const
 }
 
 void
-LedDriver::set_sunrise_duration(uint16_t duration_m)
+LedDriver::SetThermalFactor(float thermal_factor)
+{
+    thermal_factor = constrain(thermal_factor, 0.0, 1.0);
+    thermal_factor_ = thermal_factor;
+    // Update brightness based on received thermal_factor
+    pwm_.SetDuty(static_cast<uint16_t>(thermal_factor_ * current_brightness_));
+
+Serial.print(String(F("LAMBIN LedDriver::SetThermalFactor(): k = ")) + String(thermal_factor_, 2));
+Serial.println(String(F("; scaled brightness = ")) + String((thermal_factor_ * current_brightness_ / 1024.0) * 100, 2));
+}
+
+void
+LedDriver::SetSunriseDuration(uint16_t duration_m)
 {
     sunrise_duration_sec_ = (uint32_t)duration_m * 60;
 
@@ -191,7 +207,7 @@ LedDriver::set_sunrise_duration(uint16_t duration_m)
 }
 
 uint8_t
-LedDriver::map_sunrise_time_to_level(uint32_t delta_time_ms)
+LedDriver::MapSunriseTimeToLevel(uint32_t delta_time_ms)
 {
     // Avoid overflow
     uint8_t index;
@@ -210,11 +226,11 @@ LedDriver::map_sunrise_time_to_level(uint32_t delta_time_ms)
 
     // Return inverted PWM duty cycle, because current 100% duty cycle makes 0 ohm on DIM input of LED driver, which
     // corresponds to 0% brightness
-    return invert_level(mapped_level);
+    return InvertLevel(mapped_level);
 }
 
 uint8_t
-LedDriver::map_manual_control_to_level(uint16_t manual_level)
+LedDriver::MapManualControlToLevel(uint16_t manual_level)
 {
     current_brightness_ = manual_level;
 
@@ -229,5 +245,5 @@ LedDriver::map_manual_control_to_level(uint16_t manual_level)
 
     // Return inverted PWM duty cycle, because current 100% duty cycle makes 0 ohm on DIM input of LED driver, which
     // corresponds to 0% brightness
-    return invert_level(manual_level >> 2);
+    return InvertLevel(manual_level >> 2);
 }

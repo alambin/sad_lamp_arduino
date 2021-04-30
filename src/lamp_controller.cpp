@@ -7,25 +7,26 @@
 
 namespace
 {
-const uint8_t kled_driver_pin    = 9;
-const uint8_t kpotentiometer_pin = A0;
-const uint8_t kfan1_pin          = 2;
-const uint8_t kfan2_pin          = 4;
+constexpr uint8_t kLedDriverPin{9};
+constexpr uint8_t kPotentiometerPin{A0};
+constexpr uint8_t kFan1Pin{3};
+constexpr uint8_t kFan2Pin{4};
+constexpr uint8_t kThermalSensorsPin{5};
 
 // Manual mode is when potentiometer value is higher than 100. If its value is lower, it is treated as automatic mode.
-// Such features as sunrise, manual brightness controll via WebUI (ESP) are allowed only in automatic mode.
-const uint16_t kmanual_mode_level      = 100;
-const uint16_t kmanual_mode_hysteresis = 0.1 * kmanual_mode_level;
-const uint16_t kmanual_mode_threshold  = 4;
+// Such features as sunrise, manual brightness control via WebUI (ESP) are allowed only in automatic mode.
+constexpr uint16_t kmanual_mode_level{100};
+constexpr uint16_t kmanual_mode_hysteresis{0.1 * kmanual_mode_level};
+constexpr uint16_t kmanual_mode_threshold{4};
 
-// To call ESP request user should change from manual to auto mode <kreset_esp_num_of_steps> times with being in each
+// To call ESP reset user should change from manual to auto mode <kreset_esp_num_of_steps> times with being in each
 // step from <kreset_esp_step_timeout_min> to <kreset_esp_step_timeout_max> milliseconds.
-const uint32_t kreset_esp_step_timeout_min = 2000;
-const uint32_t kreset_esp_step_timeout_max = 4000;
-const uint8_t  kreset_esp_num_of_steps     = 5;
+constexpr uint32_t kreset_esp_step_timeout_min{2000};
+constexpr uint32_t kreset_esp_step_timeout_max{4000};
+constexpr uint8_t  kreset_esp_num_of_steps{5};
 
-// const uint16_t knum_of_pwm_steps      = 10;
-// const uint16_t kpwm_frequency         = 3;
+// constexpr uint16_t knum_of_pwm_steps      = 10;
+// constexpr uint16_t kpwm_frequency         = 3;
 
 constexpr char esp_set_time_ack[] PROGMEM             = "TOESP: st ACK\n";
 constexpr char esp_get_time_ack[] PROGMEM             = "TOESP: gt ACK ";
@@ -44,10 +45,13 @@ constexpr char esp_reset_cmd[] PROGMEM                = "TOESP: RESETESP\n";
 }  // namespace
 
 LampController::LampController()
-  : led_driver_(kled_driver_pin, Pwm::PWMSpeed::HZ_490)
-  , potentiometer_(kpotentiometer_pin, 10)
-  // , fan_(3, Pwm::PWMSpeed::HZ_31372)
-  // , dout_pwm_(kfan1_pin, kfan2_pin)
+  : led_driver_(kLedDriverPin, Pwm::PWMSpeed::HZ_490)
+  , potentiometer_(kPotentiometerPin, 10)
+  // TODO: need to have 1 more fan. Or adapt code of fan to control 2 fans
+  , fan_(kFan1Pin, Pwm::PWMSpeed::HZ_31372)
+  // , dout_pwm_(kFan1Pin, kFan2Pin)
+  , thermo_sensors_(kThermalSensorsPin)
+  , thermal_controller_(thermo_sensors_, fan_, led_driver_)
   , is_manual_mode_{false}
   , last_potentiometer_val_{0XFFFF}
   , last_mode_switch_time_{0}
@@ -55,17 +59,19 @@ LampController::LampController()
 }
 
 void
-LampController::setup()
+LampController::Setup()
 {
-    serial_command_reader_.setup();
+    serial_command_reader_.Setup();
 
-    print_usage();
+    PrintUsage();
     Serial.println(F("Initializing..."));
 
-    timer_.setup();
-    timer_.register_alarm_handler(this);
-    led_driver_.setup();
-    potentiometer_.setup();
+    timer_.Setup();
+    timer_.RegisterAlarmHandler(this);
+    led_driver_.Setup();
+    potentiometer_.Setup();
+    fan_.Setup();
+    thermo_sensors_.Setup();
 
     Serial.println(F("Done"));
 
@@ -78,27 +84,30 @@ LampController::setup()
 }
 
 void
-LampController::loop()
+LampController::Loop()
 {
-    potentiometer_.loop();
-    handle_manual_mode();
+    thermo_sensors_.Loop();
+    thermal_controller_.Loop();
+
+    potentiometer_.Loop();
+    HandleManualMode();
 
     if (is_manual_mode_) {
         // Set brightness manually if current potentiometer value differs from previous
-        auto potentiometer_val = potentiometer_.read();
+        auto potentiometer_val = potentiometer_.Read();
         if (abs(potentiometer_val - last_potentiometer_val_) >= kmanual_mode_threshold) {
             last_potentiometer_val_ = potentiometer_val;
-            led_driver_.set_brightness(potentiometer_.read());
+            led_driver_.SetBrightness(potentiometer_.Read());
         }
 
         // In manual mode we are not reacting on alarm from timer and not running sunrise.
     }
     else {
-        timer_.check_alarm();
-        led_driver_.run_sunrise();
+        timer_.CheckAlarm();
+        led_driver_.RunSunrise();
     }
 
-    process_commands_from_serial();
+    ProcessCommandsFromSerial();
 
     // TODO: remove it. This is temporary code to show device is alive
     // static uint32_t last_printed_message_time = 0;
@@ -120,61 +129,61 @@ LampController::loop()
 }
 
 void
-LampController::on_alarm()
+LampController::OnAlarm()
 {
     // TODO: remove this log in production
     Serial.println(F("ALARM !!!"));
-    led_driver_.start_sunrise();
+    led_driver_.StartSunrise();
 }
 
 void
-LampController::process_commands_from_serial()
+LampController::ProcessCommandsFromSerial()
 {
-    serial_command_reader_.loop();
-    if (serial_command_reader_.is_command_ready()) {
-        auto command{serial_command_reader_.read_command()};
+    serial_command_reader_.Loop();
+    if (serial_command_reader_.IsCommandReady()) {
+        auto command{serial_command_reader_.ReadCommand()};
         switch (command.type) {
         case SerialCommandReader::Command::CommandType::SET_TIME:
-            timer_.set_time_str(command.arguments);
+            timer_.SetTimeStr(command.arguments);
             Serial.print(String(FPSTR(esp_set_time_ack)));
             break;
         case SerialCommandReader::Command::CommandType::GET_TIME:
-            Serial.print(String(FPSTR(esp_get_time_ack)) + timer_.get_time_str() + "\n");
+            Serial.print(String(FPSTR(esp_get_time_ack)) + timer_.GetTimeStr() + "\n");
             break;
         case SerialCommandReader::Command::CommandType::SET_ALARM:
-            timer_.set_alarm_str(command.arguments);
+            timer_.SetAlarmStr(command.arguments);
             Serial.print(String(FPSTR(esp_set_alarm_ack)));
             break;
         case SerialCommandReader::Command::CommandType::GET_ALARM:
-            Serial.print(String(FPSTR(esp_get_alarm_ack)) + timer_.get_alarm_str() + "\n");
+            Serial.print(String(FPSTR(esp_get_alarm_ack)) + timer_.GetAlarmStr() + "\n");
             break;
         case SerialCommandReader::Command::CommandType::ENABLE_ALARM: {
-            bool result{timer_.enable_alarm_str(command.arguments)};
+            bool result{timer_.EnableAlarmStr(command.arguments)};
             Serial.print(String(FPSTR(esp_enable_alarm_ack)) + (result ? F("DONE\n") : F("ERROR\n")));
             break;
         }
         case SerialCommandReader::Command::CommandType::TOGGLE_ALARM:
-            timer_.toggle_alarm();
+            timer_.ToggleAlarm();
             Serial.print(String(FPSTR(esp_toggle_alarm_ack)));
             break;
         case SerialCommandReader::Command::CommandType::SET_SUNRISE_DURATION:
-            led_driver_.set_sunrise_duration_str(command.arguments);
+            led_driver_.SetSunriseDurationStr(command.arguments);
             Serial.print(String(FPSTR(esp_set_sunrise_duration_ack)));
             break;
         case SerialCommandReader::Command::CommandType::GET_SUNRISE_DURATION:
-            Serial.print(String(FPSTR(esp_get_sunrise_duration_ack)) + led_driver_.get_sunrise_duration_str() + "\n");
+            Serial.print(String(FPSTR(esp_get_sunrise_duration_ack)) + led_driver_.GetSunriseDurationStr() + "\n");
             break;
         case SerialCommandReader::Command::CommandType::SET_BRIGHTNESS:
             if (is_manual_mode_) {
                 Serial.print(String(FPSTR(esp_set_brightness_ack)) + F("ERROR: manual mode\n"));
                 break;
             }
-            led_driver_.set_brightness_str(command.arguments);
+            led_driver_.SetBrightnessStr(command.arguments);
             Serial.print(String(FPSTR(esp_set_brightness_ack)) + F("DONE\n"));
             break;
         case SerialCommandReader::Command::CommandType::GET_BRIGHTNESS:
             Serial.print(String(FPSTR(esp_get_brightness_ack)) + (is_manual_mode_ ? "M " : "A ") +
-                         led_driver_.get_brightness_str() + "\n");
+                         led_driver_.GetBrightnessStr() + "\n");
             break;
         case SerialCommandReader::Command::CommandType::SET_FAN_PWM_FREQUENCY:
             // dout_pwm_.set_pwm_frequency(command.arguments);
@@ -196,21 +205,21 @@ LampController::process_commands_from_serial()
 }
 
 void
-LampController::handle_manual_mode()
+LampController::HandleManualMode()
 {
-    auto potentiometer_value = potentiometer_.read();
+    auto potentiometer_value = potentiometer_.Read();
     if (!is_manual_mode_) {
         if (potentiometer_value >= kmanual_mode_level) {
-            enable_manual_mode();
+            EnableManualMode();
         }
     }
     else if (potentiometer_value < (kmanual_mode_level - kmanual_mode_hysteresis)) {
-        disable_manual_mode();
+        DisableManualMode();
     }
 }
 
 void
-LampController::handle_esp_reset_request()
+LampController::HandleEspResetRequest()
 {
     static uint8_t correct_steps_counter{0};
     auto           delta   = millis() - last_mode_switch_time_;
@@ -228,26 +237,26 @@ LampController::handle_esp_reset_request()
 }
 
 void
-LampController::enable_manual_mode()
+LampController::EnableManualMode()
 {
     is_manual_mode_ = true;
-    led_driver_.stop_sunrise();  // Stop sunrise. Just in case it was in progress
+    led_driver_.StopSunrise();  // Stop sunrise. Just in case it was in progress
     Serial.println(F("Manual mode enabled"));
 
-    handle_esp_reset_request();
+    HandleEspResetRequest();
 }
 
 void
-LampController::disable_manual_mode()
+LampController::DisableManualMode()
 {
     is_manual_mode_ = false;
     Serial.println(F("Manual mode disabled"));
 
-    handle_esp_reset_request();
+    HandleEspResetRequest();
 }
 
 void
-LampController::print_usage() const
+LampController::PrintUsage() const
 {
     Serial.println(
         F("SAD lamp controller.\n"
