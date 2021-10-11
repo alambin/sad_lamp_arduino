@@ -32,7 +32,9 @@ struct TempGraphPoint
  *           20     30     40     50     60     70     80     90     100
  */
 // In graph last point should always contain speed 255
-// TODO: uncomment after debugging is finished
+// TODO1: temp sensor is quite isolated from heatsink by glue. Also it is quite far from LED. So, I would set shutdown
+// temperature to 75, max temperature on graph to 65
+// TODO2: uncomment after debugging is finished
 // constexpr TempGraphPoint temperature_graph[] = {{30.0, 25}, {40.0, 76}, {50.0, 153}, {60.0, 230}, {70.0,
 // 255}};
 // NOTE: storing this aggay in PROGMEM will decrease flash size on 200 bytes, but will give only 24 bytes of ram.
